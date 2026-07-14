@@ -1,0 +1,309 @@
+\documentclass[11pt,twoside]{article}
+\usepackage{geometry}
+\usepackage{enumerate}
+\usepackage{latexsym,booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage[singlespacing]{setspace}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{float}
+
+\geometry{a4paper,left=2cm,right=2.0cm, top=2cm, bottom=2.0cm}
+
+\newtheorem{Definition}{Definition}
+\newtheorem{Theorem}{Theorem}
+\newtheorem{Lemma}{Lemma}
+\newtheorem{Corollary}{Corollary}
+\newtheorem{Proposition}{Proposition}
+\newtheorem{Algorithm}{Algorithm}
+\numberwithin{Theorem}{section}
+\numberwithin{Definition}{section}
+\numberwithin{Lemma}{section}
+\numberwithin{Algorithm}{section}
+\numberwithin{equation}{section}
+
+\newenvironment{modelsets}{
+\paragraph{Sets}\mbox{}
+\begin{table}[H]
+\begin{tabular}{ll}
+}{
+\end{tabular}
+\end{table}
+}
+
+\newenvironment{modelparams}{
+\paragraph{Parameters}\mbox{}
+\begin{table}[H]
+\begin{tabular}{ll}
+}{
+\end{tabular}
+\end{table}
+}
+
+\newenvironment{modelvars}{
+\paragraph{Decision Variables}\mbox{}
+\begin{table}[H]
+\begin{tabular}{ll}
+}{
+\end{tabular}
+\end{table}
+}
+
+\begin{document}
+
+\pagestyle{empty}
+
+% =============================================================================
+% Title page
+% =============================================================================
+\begin{titlepage}
+\vspace*{.5em}
+\center
+\textbf{\large{The School of Mathematics}} \\
+\vspace*{1em}
+\begin{figure}[!h]
+\centering
+\includegraphics[width=180pt]{CentredLogoCMYK.jpg}
+\end{figure}
+\vspace{2em}
+\textbf{\Huge{Working Title}}\\[2em]
+\textbf{\LARGE{by}}\\
+\vspace{2em}
+\textbf{\LARGE{Nolan Willoughby}}\\
+\vspace{6.5em}
+\Large{Dissertation Presented for the Degree of\\
+MSc in Operational Research}\\
+\vspace{6.5em}
+\Large{August 2026}\\
+\vspace{3em}
+\Large{Supervised by\\Dr. Joerg Kalcsics}
+\vfill
+\end{titlepage}
+
+\cleardoublepage
+
+% =============================================================================
+% Abstract, acknowledgments, and own work declaration
+% =============================================================================
+\begin{center}
+\Large{Abstract}
+\end{center}
+
+this will come eventually
+
+\clearpage
+
+\begin{center}
+\Large{Acknowledgments}
+\end{center}
+
+masive ups Joerg
+
+\clearpage
+
+\begin{center}
+\Large{Own Work Declaration}
+\end{center}
+
+I attest that I am the sole author of this thesis and that all the content within it is my original
+work, except for any instances where I have clearly indicated otherwise in the text. 
+
+\cleardoublepage
+
+
+
+% =============================================================================
+% Table of contents, tables, and pictures (if applicable)
+% =============================================================================
+\pagestyle{plain}
+\setcounter{page}{1}
+\pagenumbering{roman}
+
+\tableofcontents
+\clearpage
+\listoftables
+\listoffigures
+\cleardoublepage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\nocite{*}
+\bibliographystyle{abbrv}
+\clearpage
+
+\section{Introduction}
+\label{sec.intro}
+Section \ref{sec:background} will provide a review of relevant literature to the project in the interest of contextualizing the general nature of the work being done. Section \ref{sec:prob} will formally define the problem being addressed by this work and the specific context of one home healthcare company. Section \ref{sec:meth} will cover all approaches considered as potential means of addressing the problem, the specific approach chosen, and the way in which that approach was implemented, while Section \ref{sec:res} will provide detailed computational results of the methodology as implemented. Section \ref{sec:conc} will conclude by briefly reviewing the accomplishments detailed throughout, detailing limitations of the work, and noting recommendations for future development of the work.
+\clearpage
+
+\section{Background}
+\label{sec:background}
+
+\subsection{Home Healthcare}
+Home Healthcare is the process by which certain health-related services are provided to patients in their home. These services typically involve nursing care, though can also consist of prescription and other medical supply delivery as well as assistance with day-to-day activity \cite{al-hamad}. These services provided by home healthcare models are becoming increasingly essential as demographic changes yield older populations, greater geographical dispersion relative to both family and central hospital campuses, and a general preference toward aging in place. Additionally, home healthcare services can prove essential to modern healthcare systems by enabling personalized, expert care for patients with chronic illness, mobility challenges, and post-op recovery needs who may not otherwise be able to receive such quality care \cite{atta25, Mankowska2014}.
+
+Consequently, the importance of home healthcare companies, i.e. companies providing these services, is of increasing social interest. These groups must meet several operational challenges to meet the needs of their client base, and must do so with efficiency to ensure competitive advantage in a market system. Among the challenges of these groups is the need to find ways to efficiently provide diverse services requiring differing numbers and types of caregivers \cite{begur97, Mankowska2014}. Not only must these services be provided by varying numbers of caregivers with various qualification, they must also be delivered within strict time windows according to patient care needs \cite{begur97}. while meeting regulatory compliance requirements. Given the operational complexity and social importance of these operations, the operations of home healthcare companies are a domain with high-potential for operations research applications.
+
+\subsection{Application of OR to Healthcare Contexts}
+
+\subsubsection{The Home Healthcare Routing and Scheduling Problem}
+
+\subsubsection{Special Considerations}
+
+Due to the significant human impact of healthcare contexts, certain considerations ought to be made to ensure positive, equitable outcomes when applying OR to these contexts. 
+
+\subsection{Relevant General Problem Structures}
+
+As previously discussed, the problem at hand, the HHRSP, combines several elements of textbook OR problem structures. The first of these is the Assignment Problem. 
+
+The next of these is the Vehicle Routing Problem. In particular, the version of this problem with Time Windows is relevant due to the time-sensitive nature of certain home healthcare services such as insulin administration.
+
+Another relevant problem structure, at least in certain contexts, is the Synchronization Problem. 
+
+\clearpage
+
+\section{Problem Statement}
+\label{sec:prob}
+
+
+\clearpage
+
+\section{Methodology}
+\label{sec:meth}
+
+\subsection{Design Considerations}
+
+\subsection{Modelling Approach}
+
+\subsection{Formulation}
+
+\begin{modelsets}
+	$D$ & set of days to schedule caregivers\\
+	$C^d$ & set of caregivers available on day $d$\\
+	$C_D^d \subseteq C^d$ & set of driving caregivers availabl on day $d$\\
+	$L$ & set of localities served
+\end{modelsets}
+
+\begin{modelparams}
+	$d_{ij}$ & \quad distance or drive time between caregivers $i$ and $j$\\
+	$r_{jl}$ & \quad distance or drive time between caregiver $j$ and locality $l$\\
+	$F_{ij}^d$ & \quad number of pair visits on day $d$ where both caregivers $i$ and $j$ are familiar to the client\\
+	$f_{ij}^d$ & \quad number of pair visits on day $d$ where either caregiver $i$ or $j$ are familiar to the client\\
+	$s_i^d$ & \quad number of solo visits on day $d$ where caregiver $i$ is familiar to the client\\
+	$V^d$ & \quad total visit minutes on day $d$\\
+	$V_{Pl}^d$ & \quad visit minutes in locality $l$ on day $d$ requiring a caregiving pair\\
+	$V_{sl}^d$ & \quad visit minutes in locality $l$ on day $d$ requiring a single caregiver\\
+	$l_i$ & \quad binary indicator whether caregiver $i$ is located in locality $l$\\
+	$K$ & \quad maximum distance carers will travel for pairing
+\end{modelparams}
+
+\begin{modelvars}
+	$v_{il}^d$ & \quad variable representing the linearization of the product of binary variables $z_{il}^d y_{i}^d$\\
+	$w_{ijl}^d$ & \quad variable representing the linearization of the product of binary variables $z_{jl}^d x_{ij}^d$
+\end{modelvars}
+\begin{table}[H]
+	\begin{tabular}{l}
+		$x_{ij}^d = 
+			\begin{cases}
+				1 & \text{if caregiver } i \in C_D^d \text{paired with caregiver } j \in C^d \setminus \{i\} \text{on day } d\\
+				0 & \text{else}
+			\end{cases}
+		$ \\
+		$y_{j}^d =
+			\begin{cases}
+				1 & \text{if caregiver } j \in C^d \text{is unpaired (i.e. does solo visits) on day } d\\
+				0 & \text{else}
+			\end{cases}
+		$ \\
+		$z_{il}^d = 
+			\begin{cases}
+				1 & \text{if caregiver } i \in C^d \text{assigned to locality } l \in L \text{on day } d\\
+				0 & \text{else}
+			\end{cases}
+		$
+	\end{tabular}
+\end{table}
+
+\begin{alignat}{4}
+	\max \quad 
+	& \sum\nolimits_{d \in D} \sum\nolimits_{j\in C^d} \left( s_j y_j^d + \sum\nolimits_{i \in C_D^d \setminus \{j\}} \left( F_{ij}^d x_{ij}^d + f_{ij}^d x_{ij}^d \right)\right) 
+	&&&&&& \label{obj1} \\
+	\min \quad
+	& \sum\nolimits_{d \in D} \sum\nolimits_{j\in C^d} \sum\nolimits_{i \in C_D^d \setminus \{j\}} d_{ij} x_{ij}^d + \sum\nolimits_{l \in L} r_{jl} \left( x_{ij}^d + y_j^d \right) 
+	&&&&&& \label{obj2} \\
+	\text{s.t.}\quad 
+	& y_j^d + \sum\nolimits_{i \in C_D^d} x_{ij}^d & = & 1
+	& \forall j \in C^d \setminus C_D^d , \forall d \in D \label{assignWalkerOnce} \\
+	& y_j^d + \sum\nolimits_{i \in C_D^d \setminus \{j \}} x_{ij}^d + \sum\nolimits_{k \in C_D^d \setminus \{j\}} x_{jk}^d & = & 1
+	& \forall j \in C_D^d , \forall d \in D \label{assignDriverOnce} \\
+	& \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} l_j x_{ij}^d + w_{ijl}^d - \sum\nolimits_{l' \in L \setminus \{l\}} w_{ijl'}^d & \leq & \lceil |C^d| \tfrac{V_{Pl}^d}{V^d} \rceil + \epsilon
+	& \forall d \in D , \forall l \in L \label{upperPairLocale} \\
+	& \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} l_j x_{ij}^d + w_{ijl}^d - \sum\nolimits_{l' \in L \setminus \{l\}} w_{ijl'}^d
+	& \geq & \lfloor \tfrac{|C^d|}{2} \tfrac{V_{Pl}^d}{V^d} \rfloor - \epsilon
+	& \forall d \in D , \forall l \in L \label{lowerPairLocale} \\
+	& \sum\nolimits_{j \in C^d \setminus C_D^d} \left( l_j y_j^d + \sum\nolimits_{i\in C_D^d} \left( l_i y_i^d + v_{il}^d - \sum\nolimits_{l' \in L \setminus \{l\}} v_{il'}^d \right) \right) & \leq & \lceil |C^d| \tfrac{V_{sl}^d}{V^d} \rceil + \epsilon
+	& \forall d \in D, \forall l \in L \label{upperSoloLocale} \\
+	& \sum\nolimits_{j \in C^d \setminus C_D^d} \left( l_j y_j^d + \sum\nolimits_{i\in C_D^d} \left( l_i y_i^d + v_{il}^d - \sum\nolimits_{l' \in L \setminus \{l\}} v_{il'}^d \right) \right) & \geq & \lfloor \tfrac{|C^d|}{2} \tfrac{V_{sl}^d}{V^d} \rfloor - \epsilon
+	& \forall d \in D, \forall l \in L \label{lowerSoloLocale} \\
+	& x_{ij}^d & = & 0 
+	& \forall i \in C_D^d \forall j \in \{\, j \in C^d \mid d_{ij} \ge K \,\} \label{pairDistLimit}\\
+	& w_{ijl}^d & \geq & 0 
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin1} \\
+	& w_{ijl}^d & \leq & x_{ij}^d
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin2} \\
+	& w_{ijl}^d & \leq & z_{jl}^d
+	&  \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin3} \\
+	& z_{jl}^d + x_{ij}^d - 1 & \leq & w_{ijl}^d
+	&  \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin4} \\
+	& v_{il}^d & \geq & 0
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin1} \\
+	& v_{il}^d & \leq & y_{i}^d
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin2} \\
+	& v_{il}^d & \leq & z_{il}^d
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin3} \\
+	& z_{jl}^d + y_{i}^d - 1 & \leq & v_{il}^d
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin4} \\
+	& x_{ij}^d & \in & \{0,1\}
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall d \in D \label{domX} \\
+	& y_i^d & \in & \{0,1\}
+	& \forall i \in C^d, \forall d \in D \label{domY} \\
+	& z_{il}^d & \in & \{0,1\}
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{domZ}
+\end{alignat}
+
+\clearpage
+
+\section{(Computational) Results}
+\label{sec:res}
+
+\clearpage
+
+\section{Conclusion}
+\label{sec:conc}
+lol we've got a long way to go before i start doing this
+\clearpage
+
+%the entries have to be in the file literature.bib
+\bibliography{literature}
+\clearpage
+
+\appendix
+\section*{Appendices}
+\addcontentsline{toc}{section}{Appendices}
+
+\section{An Appendix}
+\label{app:one}
+
+\clearpage
+
+\section{Another Appendix}
+\label{app:two}
+
+Some other stuff.
+
+\end{document}
