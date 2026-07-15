@@ -2,18 +2,36 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from collections import defaultdict
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.spatial.distance import squareform
 import pickle
+
+"""
+HELPERS AND FILES
+"""
+
 
 # figure out the folder we're currently in
 currDir = Path(__file__).resolve().parent
+currParent = currDir.parent
+currAbuela = currParent.parent
 
 # go find the nearby data files we need
-carersFile = currDir.parent / "Home HealthCare Data" / "NW_Carers.csv"
-clientsFile = currDir.parent / "Home HealthCare Data" / "NW_Clients.csv"
-visitsFile = currDir.parent / "Home HealthCare Data" / "NW_CareVisits.csv"
-travelFile = currDir.parent / "Home HealthCare Data" / "NW_TravelTimes.csv"
+carersFile = currParent.parent / "Home HealthCare Data" / "NW_Carers.csv"
+clientsFile = currParent.parent / "Home HealthCare Data" / "NW_Clients.csv"
+visitsFile = currParent.parent / "Home HealthCare Data" / "NW_CareVisits.csv"
+travelFile = currParent.parent / "Home HealthCare Data" / "NW_TravelTimes.csv"
 
-# import those files so we have something to actually work with
+
+def to_minutes(x):
+    if pd.isna(x):
+        return None
+    h, m = map(int, str(x).strip().split(":"))
+    return 60*h + m
+
+"""
+IMPORTS
+"""
 
 # the carer file ends in a ragged column
 carersData = []
@@ -35,6 +53,7 @@ with open(carersFile) as f:
         carersData.append(row)
 
 carers_df = pd.DataFrame(carersData, columns=header, index=None)
+carers_df["Carer ID"] = carers_df["Carer ID"].astype(int)
 
 # the client file ends in a ragged column
 clientsData = []
@@ -78,13 +97,25 @@ single_visits_df = visits_df[visits_df["Number of Carers"] == 1]
 pair_visits_df = pair_visits_df.merge(clients_df, on="Client ID")
 single_visits_df = single_visits_df.merge(clients_df, on = "Client ID")
 
-# travel time matrix ends up with an empty column
+# travel time matrix ends up with an empty column for some reason
 travel_df = pd.read_csv(travelFile, sep=";", index_col=0)
 travel_df = travel_df.dropna(axis=1, how="all")
 
-# Locality-Independent Parameters
+# convert data to ints for later
+travel_df = travel_df.map(to_minutes)
+travel_df.index = travel_df.index.astype(int)
+travel_df.columns = travel_df.columns.astype(int)
+
+# get a list of all client/carer ids
+carers = np.array(carers_df["Carer ID"])
+clients = np.array(clients_df["Client ID"])
+
+"""
+EXTRACT LOCALITY-INDEPENDENT SETS AND PARAMETERS
+"""
+
 # get the days we are planning
-D = np.array(visits_df["Visit Date"].unique())
+Days = np.array(visits_df["Visit Date"].unique())
 
 # figure out which carers and driving carers we have on those days
 carers_exploded = carers_df.explode("Available Working Days")
@@ -143,6 +174,100 @@ for row in pair_visits_df.itertuples(index=False):
                 fijd[(i, j, d)] += duration
                 
 
-# TO-DO: Calculate Localities by Multidimensional Scaling
+# TO-DO: Calculate Localities by Hierarchical Clustering
+# first augment distance matrix to include carer -> carer
+allNodes = list(carers) + list(clients)
+n = len(allNodes)
 
-# TO-DO: Build and Solve the Model
+D = pd.DataFrame(np.zeros((n,n)), index= allNodes, columns= allNodes)
+
+# keep well-defined client->client and carer->client distances
+for i in carers:
+    for j in clients:
+        D.loc[i,j] = travel_df.loc[i,j]
+        D.loc[j,i] = travel_df.loc[i,j]
+        
+for i in clients:
+    for j in clients:
+        D.loc[i,j] = travel_df.loc[i,j]
+        D.loc[j,i] = travel_df.loc[i,j]
+
+# next dummy carer->carer by going to nearest clients as middlemen
+nearestClient = {
+    c: travel_df.loc[c].astype(float).idxmin()
+    for c in carers    
+}
+
+for i in carers:
+    for j in carers:
+        if i == j:
+            D.loc[i,j] = 0
+        else:
+            ci = nearestClient[i]
+            cj = nearestClient[j]
+            D.loc[i,j] = D.loc[i, ci] + D.loc[ci,cj] + D.loc[cj,j]
+            
+# then hierarchical cluster to create localities
+numLocalities = 8
+D_clients = D.loc[clients, clients]
+
+condensed = squareform(D_clients.values)
+Z = linkage(condensed, method="complete")
+clientLocalities = fcluster(Z, numLocalities, criterion="maxclust")
+
+localityMap = dict(zip(D_clients.index, clientLocalities))
+L = sorted(set(clientLocalities))
+
+# now find each carer's locality and furthest neighbor in all other localities
+ril = {}
+li = {}
+for c in carers:
+    carerHome = localityMap[nearestClient[c]]
+    for l in set(clientLocalities):
+        li[(c,l)] = int(l == carerHome)
+        members = [n for n in D_clients.index if localityMap[n] == l]
+        if l == carerHome:
+            ril[(c,l)] = 0
+        else:
+            ril[(c,l)] = max(D.loc[c,n] for n in members)
+
+# finally break down visit minutes by locality and pair/single status        
+pair_visits_df["locality"] = pair_visits_df["client_id"].map(localityMap)
+single_visits_df["Locality"] = single_visits_df["Client ID"].map(localityMap)
+
+Vpld = (
+        pair_visits_df.groupby(["locality", "visit_date"])["visit_duration"]
+        .sum()
+        .to_dict()
+)
+
+Vsld = (
+        single_visits_df.groupby(["Locality", "Visit Date"])["Visit Duration"]
+        .sum()
+        .to_dict()
+)
+
+print(pair_visits_df.head)
+
+"""
+EXPORT SETS AND PARAMETERS AS A PICKLE
+"""
+precomp = {
+        "D": Days,
+        "Cd": Cd,
+        "CdD": CdD,
+        "L": L,
+        "dij": D,
+        "ril": ril,
+        "Fijd": dict(Fijd),
+        "fijd": dict(fijd),
+        "sid": sid,
+        "Vd": Vd,
+        "Vlpd": Vpld,
+        "Vlsd": Vsld,
+        "li": li,
+        "K": K
+}
+
+with open("inputs.pkl", "wb") as f:
+    pickle.dump(precomp, f)
