@@ -170,7 +170,7 @@ for row in pair_visits_df.itertuples(index=False):
     # --- fijd: XOR ---
     for i in CdD_set:
         for j in Cd_set:
-            if (i in known) ^ (j in known):
+            if (i in known) or (j in known):
                 fijd[(i, j, d)] += duration
                 
 
@@ -235,6 +235,7 @@ for c in carers:
 pair_visits_df["locality"] = pair_visits_df["client_id"].map(localityMap)
 single_visits_df["Locality"] = single_visits_df["Client ID"].map(localityMap)
 
+
 Vpld = (
         pair_visits_df.groupby(["locality", "visit_date"])["visit_duration"]
         .sum()
@@ -247,7 +248,17 @@ Vsld = (
         .to_dict()
 )
 
-print(pair_visits_df.head)
+# convert all timedeltas to floats/ints
+Fijd = {k: v.total_seconds()/60 for k, v in Fijd.items()}
+fijd = {k: v.total_seconds()/60 for k, v in fijd.items()}
+sid = {k: v.total_seconds()/60 for k, v in sid.items()}
+Vd = {k: v.total_seconds()/60 for k, v in Vd.items()}
+Vpld = {k: v.total_seconds()/60 for k, v in Vpld.items()}
+Vsld = {k: v.total_seconds()/60 for k, v in Vsld.items()}
+
+# export clients' locality assignments so that we have some idea what any of this means
+clientAssignment = pd.DataFrame(list(localityMap.items()), columns=["Client ID", "Locality"])
+clientAssignment.to_csv(currParent.parent / "Home HealthCare Data" / "locality_assignments.csv", index=False)
 
 """
 EXPORT SETS AND PARAMETERS AS A PICKLE
@@ -269,5 +280,5 @@ precomp = {
         "K": K
 }
 
-with open("inputs.pkl", "wb") as f:
+with open(currParent.parent / "Home HealthCare Data" / "inputs.pkl", "wb") as f:
     pickle.dump(precomp, f)
