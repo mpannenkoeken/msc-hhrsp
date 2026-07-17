@@ -135,7 +135,7 @@ CdD = (
 
 Vd = visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
 
-K = pd.to_timedelta(40, unit="m")
+K = 40
 
 explode_singles = single_visits_df.explode("Known Carers")
 
@@ -161,20 +161,22 @@ for row in pair_visits_df.itertuples(index=False):
     known_in_Cd = known & Cd_set
     known_in_CdD = known & CdD_set
     
-    # --- Fijd: both i AND j known ---
+    # identify pairs where both are known and get durations
     for i in known_in_CdD:
         for j in known_in_Cd:
             if i != j and j in known:
                 Fijd[(i, j, d)] += duration
     
-    # --- fijd: XOR ---
+    # identify pairs where either are known and get durations (double count ANDs)
     for i in CdD_set:
         for j in Cd_set:
             if (i in known) or (j in known):
                 fijd[(i, j, d)] += duration
-                
+       
 
-# TO-DO: Calculate Localities by Hierarchical Clustering
+"""
+CREATE LOCALITIES AND DERIVE RELEVANT SET AND PARAMETERS
+"""
 # first augment distance matrix to include carer -> carer
 allNodes = list(carers) + list(clients)
 n = len(allNodes)
@@ -216,7 +218,7 @@ Z = linkage(condensed, method="complete")
 clientLocalities = fcluster(Z, numLocalities, criterion="maxclust")
 
 localityMap = dict(zip(D_clients.index, clientLocalities))
-L = sorted(set(clientLocalities))
+L = [int(x) for x in set(clientLocalities)]
 
 # now find each carer's locality and furthest neighbor in all other localities
 ril = {}
@@ -234,7 +236,6 @@ for c in carers:
 # finally break down visit minutes by locality and pair/single status        
 pair_visits_df["locality"] = pair_visits_df["client_id"].map(localityMap)
 single_visits_df["Locality"] = single_visits_df["Client ID"].map(localityMap)
-
 
 Vpld = (
         pair_visits_df.groupby(["locality", "visit_date"])["visit_duration"]

@@ -60,19 +60,17 @@ DECLARATION OF DECISION VARIABLES
 # represents the linearization of $z_{il}^d y_{i}^d$
 vild = m.addVars(((i,l,d) for d in D for i in CdD[d] for l in L), 
                  vtype=grb.GRB.CONTINUOUS)
-# represents the linearization of $z_{jl}^d x_{ij}^d$
+# represents the linearization of $z_{il}^d x_{ij}^d$
 wijld = m.addVars(((i,j,l,d) for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L), 
                   vtype=grb.GRB.CONTINUOUS)
-# represents the linearization of $z_{il}^d x_{ij}^d$
-uijld = m.addVars(((i,j,l,d) for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L),
-                  vtype=grb.GRB.CONTINUOUS)
+
 # 1 if i \in C_D^d paired with j \in C^d \setminus \{i\} on day d, 0 else
 xijd = m.addVars(((i,j,d) for d in D for i in CdD[d] for j in Cd[d] if j != i), 
                  vtype=grb.GRB.BINARY)
 # 1 if caregiver j \in C^d is unpaired (i.e. does solo visits) on day d, 0 else
 yid = m.addVars(((i,d) for d in D for i in Cd[d]), vtype=grb.GRB.BINARY)
-# 1 if caregiver i \in C^d assigned to locality l \in L on dayd, 0 else
-zild = m.addVars(((i,l,d) for d in D for i in Cd[d] for l in L), 
+# 1 if caregiver i \in C_D^d assigned to locality l \in L on dayd, 0 else
+zild = m.addVars(((i,l,d) for d in D for i in CdD[d] for l in L), 
                  vtype=grb.GRB.BINARY)
 
 """
@@ -80,17 +78,17 @@ OBJECTIVES
 """
 # objective one is to maximize the potential of familiar visits
 potentialFamiliarVisits = grb.quicksum(
-                            grb.quicksum(sid[(j,d)] * yid[j,d] + 
-                                         grb.quicksum(Fijd[i,j,d] * xijd[i,j,d]
-                                                      + fijd[i,j,d] * xijd[i,j,d]
+                            grb.quicksum(sid.get((j,d),0) * yid[j,d] + 
+                                         grb.quicksum(Fijd.get((i,j,d),0) * xijd[i,j,d]
+                                                      + fijd.get((i,j,d),0) * xijd[i,j,d]
                                                       for i in CdD[d] if i != j)
                                          for j in Cd[d]) 
                             for d in D)
 # objective two is to minimize the travel time for caregivers' assignments
 carerTravelCeiling = grb.quicksum(
                          grb.quicksum(
-                             grb.quicksum(dij[(i,j)] * xijd[i,j,d] +
-                                    grb.quicksum(ril[i,l] * zild[i,l,d]
+                             grb.quicksum(dij[i].loc[j] * xijd[i,j,d] +
+                                    grb.quicksum(ril[(i,l)] * zild[i,l,d]
                                         for l in L)
                                  for i in CdD[d] if i != j)
                              for j in Cd[d])
@@ -112,7 +110,7 @@ m.addConstrs(yid[i,d] +
 for d in D:
     for i in CdD[d]:
         for j in Cd[d]:
-            if dij[(i,j)] > K:        
+            if dij[i].loc[j] > K:        
                 xijd[i,j,d].ub = 0
                 
 # upper bound the solo units and their geospatial distribution
@@ -122,46 +120,36 @@ m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
              for l in L for d in D)
 
 # lower bound the solo units and their geospatial distribution
-m.addConstrs(grb.quicksum(li[(i,l) * yid[i,d]] for i in Cd_minus_CdD[d]) +
+m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
              grb.quicksum(vild[i,l,d] for i in CdD[d]) >= 
              math.floor(Vlsd[(l,d)] / Vd[d] * len(Cd[d]) / 2)
              for l in L for d in D)
 
+print(Vlpd.keys())
+
 # upper bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(
                 grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) <= math.ceil(Vlpd[(l,d)] / Vd[d] * len(Cd[d]))
+                for i in CdD[d]) <= math.ceil(Vlpd.get((l,d), 0) / Vd[d] * len(Cd[d]))
             for l in L for d in D)
 
 # lower bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(
                 grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) <= math.floor(Vlpd[(l,d)] / Vd[d] * len(Cd[d]) / 2)
+                for i in CdD[d]) <= math.floor(Vlpd.get((l,d),0) / Vd[d] * len(Cd[d]) / 2)
             for l in L for d in D)
-
-# only allow units with at least one driver to relocate to a different locality
-m.addConstrs(vild[i,l,d] == yid[i,d] * li[l,i]
-             for d in D for i in Cd_minus_CdD[d] for l in L)
-
-# assign both members of assigned pairs to the same locality
-m.addConstrs(uijld[i,j,l,d] == wijld[i,j,l,d]
-             for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
 
 # make wijld do what i want it to
 m.addConstrs(wijld[i,j,l,d] <= xijd[i,j,d] for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
 m.addConstrs(wijld[i,j,l,d] <= zild[j,l,d] for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
 m.addConstrs(wijld[i,j,l,d] >= zild[j,l,d] + xijd[i,j,l,d] - 1
              for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
-# make uijld do what i want it to
-m.addConstrs(uijld[i,j,l,d] <= xijd[i,j,d] for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
-m.addConstrs(uijld[i,j,l,d] <= zild[i,l,d] for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
-m.addConstrs(uijld[i,j,l,d] >= zild[i,l,d] + xijd[i,j,l,d] - 1
-             for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
+
 # make vild do what i want it to
-m.addConstrs(vild[i,l,d] <= yid[i,d] for d in D for i in Cd[d] for l in L)
-m.addConstrs(vild[i,l,d] <= zild[i,l,d] for d in D for i in Cd[d] for l in L)
+m.addConstrs(vild[i,l,d] <= yid[i,d] for d in D for i in CdD[d] for l in L)
+m.addConstrs(vild[i,l,d] <= zild[i,l,d] for d in D for i in CdD[d] for l in L)
 m.addConstrs(vild[i,l,d] >= yid[i,d] + zild[i,l,d] - 1
-             for d in D for i in Cd[d] for l in L)
+             for d in D for i in CdD[d] for l in L)
 
 """
 GUROBI WORKS ITS MAGIC
