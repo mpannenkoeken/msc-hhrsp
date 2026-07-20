@@ -8,12 +8,69 @@ Created on Thu Jul 16 13:37:47 2026
 
 import gurobipy as grb
 import pickle
-import numpy as np
 import pandas as pd
-import os
 from pathlib import Path
 import math
 
+"""
+HELPER FUNCTIONS
+"""
+def normalize(df):
+    return df.sort_values(["Day", "Caregiver ID"]).reset_index(drop=True)
+
+def df_signature(df):
+    return tuple(map(tuple, normalize(df).to_numpy()))
+
+def get_sol(D, Cd, CdD, L, xijd, yid, zild, li):
+    rows = []
+    for d in D:
+        # paired caregivers
+        for i in CdD[d]:
+            for j in Cd[d]:
+                if j != i:
+                    if xijd[i,j,d].X > 0.5:
+                        # find locality assignment
+                        lAssignment = next(
+                            (l for l in L if zild[i,l,d].X > 0.5),
+                            None
+                            )
+                        
+                        if lAssignment == None:
+                            lAssignment = next(l for l in L if li[(i,l)] == 1)
+                        
+                        rows.append({
+                            "Day": d,
+                            "Caregiver ID": i,
+                            "Partner ID (if any)": j,
+                            "Locale Assignment": lAssignment
+                            })
+                    
+        # solo caregivers
+        for i in Cd[d]:
+            if yid[i,d].X > 0.5:
+                if i in CdD[d]:
+                    lAssignment = next(
+                        (l for l in L if zild[i,l,d].X > 0.5),
+                        None
+                        )
+                    if lAssignment == None:
+                        lAssignment = next(l for l in L if li[(i,l)] == 1)
+                    
+                    rows.append({
+                        "Day": d,
+                        "Caregiver ID": i,
+                        "Partner ID (if any)": None,
+                        "Locale Assignment": lAssignment
+                        })
+                else:
+                    lAssignment = next(l for l in L if li[(i,l)] == 1)
+                    rows.append({"Day": d, "Caregiver ID": i, 
+                                 "Partner ID (if any)": None, 
+                                 "Locale Assignment": lAssignment})
+    # save results
+    currSol = pd.DataFrame(rows)
+    return currSol
+    
 """
 INITIALIZATIONS
 """
@@ -45,8 +102,8 @@ li = data["li"]
 K = data["K"]
 
 # define the tolerances on geospatial solo/pair distributions
-epsi = 2 # tolerance on solo caregiving units
-delta = 1 # tolerance on pair caregiving units
+epsi = 0 # tolerance on solo caregiving units
+delta = 0 # tolerance on pair caregiving units
 
 # do the set minus to get the non-drivers now instead of each time
 Cd_minus_CdD = {d: set(Cd[d]) - set(CdD[d]) for d in D}
@@ -61,7 +118,8 @@ DECLARATION OF DECISION VARIABLES
 vild = m.addVars(((i,l,d) for d in D for i in CdD[d] for l in L), 
                  vtype=grb.GRB.CONTINUOUS)
 # represents the linearization of $z_{il}^d x_{ij}^d$
-wijld = m.addVars(((i,j,l,d) for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L), 
+wijld = m.addVars(((i,j,l,d) for d in D for i in CdD[d] 
+                   for j in Cd[d] if j != i for l in L), 
                   vtype=grb.GRB.CONTINUOUS)
 
 # 1 if i \in C_D^d paired with j \in C^d \setminus \{i\} on day d, 0 else
@@ -79,8 +137,10 @@ OBJECTIVES
 # objective one is to maximize the potential of familiar visits
 potentialFamiliarVisits = grb.quicksum(
                             grb.quicksum(sid.get((j,d),0) * yid[j,d] + 
-                                         grb.quicksum(Fijd.get((i,j,d),0) * xijd[i,j,d]
-                                                      + fijd.get((i,j,d),0) * xijd[i,j,d]
+                                         grb.quicksum(Fijd.get((i,j,d),0) 
+                                                      * xijd[i,j,d]
+                                                      + fijd.get((i,j,d),0) 
+                                                      * xijd[i,j,d]
                                                       for i in CdD[d] if i != j)
                                          for j in Cd[d]) 
                             for d in D)
@@ -97,8 +157,8 @@ carerTravelCeiling = grb.quicksum(
 CONSTRAINTS
 """
 # assign each available caregiver once per day available (non-driver)
-m.addConstrs(yid[j,d] + grb.quicksum(xijd[i,j,d] for i in CdD[d] if i != j) == 1
-             for d in D for j in Cd_minus_CdD[d])
+m.addConstrs(yid[j,d] + grb.quicksum(xijd[i,j,d] for i in CdD[d] if i != j)
+             == 1 for d in D for j in Cd_minus_CdD[d])
 
 # assign each available caregiver once per day available (driver)
 m.addConstrs(yid[i,d] + 
@@ -125,24 +185,26 @@ m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
              math.floor(Vlsd[(l,d)] / Vd[d] * len(Cd[d]) / 2)
              for l in L for d in D)
 
-print(Vlpd.keys())
-
 # upper bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(
                 grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) <= math.ceil(Vlpd.get((l,d), 0) / Vd[d] * len(Cd[d]))
+                for i in CdD[d]) 
+                <= math.ceil(Vlpd.get((l,d), 0) / Vd[d] * len(Cd[d]))
             for l in L for d in D)
 
 # lower bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(
                 grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) <= math.floor(Vlpd.get((l,d),0) / Vd[d] * len(Cd[d]) / 2)
+                for i in CdD[d]) 
+                <= math.floor(Vlpd.get((l,d),0) / Vd[d] * len(Cd[d]) / 2)
             for l in L for d in D)
 
 # make wijld do what i want it to
-m.addConstrs(wijld[i,j,l,d] <= xijd[i,j,d] for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
-m.addConstrs(wijld[i,j,l,d] <= zild[j,l,d] for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
-m.addConstrs(wijld[i,j,l,d] >= zild[j,l,d] + xijd[i,j,l,d] - 1
+m.addConstrs(wijld[i,j,l,d] <= xijd[i,j,d] for d in D for i in CdD[d] 
+             for j in Cd[d] if j != i for l in L)
+m.addConstrs(wijld[i,j,l,d] <= zild[i,l,d] for d in D for i in CdD[d] 
+             for j in Cd[d] if j != i for l in L)
+m.addConstrs(wijld[i,j,l,d] >= zild[i,l,d] + xijd[i,j,d] - 1
              for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
 
 # make vild do what i want it to
@@ -154,7 +216,64 @@ m.addConstrs(vild[i,l,d] >= yid[i,d] + zild[i,l,d] - 1
 """
 GUROBI WORKS ITS MAGIC
 """
+# optimize for familiarity/objective 1
+m.setObjective(potentialFamiliarVisits, sense=grb.GRB.MAXIMIZE)
+m.Params.OutputFlag = 0
+m.optimize()
+# store travel time in unrestricted case
+maxTravel = carerTravelCeiling.getValue()
 
+allResults = []
+# store objective 1 results
+maxTravelSol = get_sol(D, Cd, CdD, L, xijd, yid, zild, li)
+allResults.append(maxTravelSol)
+
+print(f"Maximum Observed Travel Ceiling: {maxTravel}")
+
+# add constraint on travel time
+travel = m.addConstr(carerTravelCeiling <= maxTravel)
+
+# optimize for travel time/objective 2
+m.setObjective(carerTravelCeiling, sense=grb.GRB.MINIMIZE)
+m.update
+m.optimize()
+# store travel time when minimized
+minTravel = m.ObjVal
+
+# store objective 2 results
+minTravelSol = get_sol(D, Cd, CdD, L, xijd, yid, zild, li)
+allResults.append(minTravelSol)
+
+print(f"Minimum Observed Travel Ceiling: {minTravel}")
+
+# reset model objective as objective 1/familiarity
+m.setObjective(potentialFamiliarVisits, sense=grb.GRB.MAXIMIZE)
+m.update()
+
+# optimize for linear combinations of min and max travel times
+for lamb in [0.25, 0.5, 0.75]:
+    # update rhs of travel constraint and solve
+    travel.rhs = lamb * maxTravel + (1 - lamb) * minTravel
+    m.update()
+    print(f"Current Travel RHS: {travel.rhs}")
+    m.optimize()
+    print(f"Observed Travel: {carerTravelCeiling.getValue()}")
+    
+    # save results
+    currSol = get_sol(D, Cd, CdD, L, xijd, yid, zild, li)
+    allResults.append(currSol)
+    
 """
-EXPORT RESULTS
+COMPARE RESULTS AND EXPORT WHILE IGNORING DUPLICATES
 """
+unique = {}
+for df in allResults:
+    sig = df_signature(df)
+    if sig not in unique:
+        unique[sig] = df
+
+unique_results = list(unique.values())
+
+for i in range(len(unique_results)):
+    unique_results[i].to_csv(f"candidate_pairings_{i+1}.csv", index=False)
+    
