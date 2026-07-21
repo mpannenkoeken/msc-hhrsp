@@ -16,10 +16,10 @@ import math
 HELPER FUNCTIONS
 """
 def normalize(df):
-    return df.sort_values(["Day", "Caregiver ID"]).reset_index(drop=True)
-
-def df_signature(df):
-    return tuple(map(tuple, normalize(df).to_numpy()))
+    df = df.sort_index(axis=1)
+    return df.sort_values(
+        by=list(df.columns), kind="mergesort"
+                ).reset_index(drop=True)
 
 def get_sol(D, Cd, CdD, L, xijd, yid, zild, li):
     rows = []
@@ -266,14 +266,15 @@ for lamb in [0.25, 0.5, 0.75]:
 """
 COMPARE RESULTS AND EXPORT WHILE IGNORING DUPLICATES
 """
-unique = {}
+unique_results = []
+seen = []
 for df in allResults:
-    sig = df_signature(df)
-    if sig not in unique:
-        unique[sig] = df
+    norm=normalize(df)
+    if not any(norm.equals(existing) for existing in seen):
+        seen.append(norm)
+        unique_results.append(df)
 
-unique_results = list(unique.values())
 
-for i in range(len(unique_results)):
+for i, df in enumerate(unique_results):
     unique_results[i].to_csv(f"candidate_pairings_{i+1}.csv", index=False)
     
