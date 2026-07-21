@@ -134,6 +134,16 @@ CdD = (
 )
 
 Vd = visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
+Vpd = pair_visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
+Vsd = single_visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
+
+Pd = {}
+Sd = {}
+for d in Days:
+    pairShare = Vpd[d]/Vd[d]
+    Pd[d] = int(round(pairShare * len(Cd[d]) / (1 + pairShare)))
+    Pd[d] = max(0, min(Pd[d], len(Cd[d]) // 2))
+    Sd[d] = len(Cd[d]) - 2*Pd[d]
 
 K = 40
 
@@ -254,6 +264,8 @@ Fijd = {k: v.total_seconds()/60 for k, v in Fijd.items()}
 fijd = {k: v.total_seconds()/60 for k, v in fijd.items()}
 sid = {k: v.total_seconds()/60 for k, v in sid.items()}
 Vd = {k: v.total_seconds()/60 for k, v in Vd.items()}
+Vpd = {k: v.total_seconds()/60 for k, v in Vpd.items()}
+Vsd = {k: v.total_seconds()/60 for k, v in Vsd.items()}
 Vpld = {k: v.total_seconds()/60 for k, v in Vpld.items()}
 Vsld = {k: v.total_seconds()/60 for k, v in Vsld.items()}
 
@@ -274,9 +286,12 @@ precomp = {
         "Fijd": dict(Fijd),
         "fijd": dict(fijd),
         "sid": sid,
-        "Vd": Vd,
+        "Vpd": Vpd,
+        "Vsd": Vsd,
         "Vlpd": Vpld,
         "Vlsd": Vsld,
+        "Pd": Pd,
+        "Sd": Sd,
         "li": li,
         "K": K
 }

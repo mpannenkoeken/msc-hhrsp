@@ -41,7 +41,7 @@ def get_sol(D, Cd, CdD, L, xijd, yid, zild, li):
                         rows.append({
                             "Day": d,
                             "Caregiver ID": i,
-                            "Partner ID (if any)": j,
+                            "Partner ID (if any)": int(j),
                             "Locale Assignment": lAssignment
                             })
                     
@@ -95,9 +95,12 @@ ril = data["ril"]
 Fijd = data["Fijd"]
 fijd = data["fijd"]
 sid = data["sid"]
-Vd = data["Vd"]
+Vpd = data["Vpd"]
+Vsd = data["Vsd"]
 Vlpd = data["Vlpd"]
 Vlsd = data["Vlsd"]
+Pd = data["Pd"]
+Sd = data["Sd"]
 li = data["li"]
 K = data["K"]
 
@@ -176,28 +179,54 @@ for d in D:
 # upper bound the solo units and their geospatial distribution
 m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
              grb.quicksum(vild[i,l,d] for i in CdD[d]) <= 
-             math.ceil(Vlsd[(l,d)] / Vd[d] * len(Cd[d]))
+             math.ceil(Vlsd.get((l,d), 0) / Vsd[d] * (Sd[d] + epsi))
              for l in L for d in D)
 
 # lower bound the solo units and their geospatial distribution
 m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
              grb.quicksum(vild[i,l,d] for i in CdD[d]) >= 
-             math.floor(Vlsd[(l,d)] / Vd[d] * len(Cd[d]) / 2)
+             math.floor(Vlsd.get((l,d), 0) / Vsd[d] * (Sd[d] - epsi))
              for l in L for d in D)
 
 # upper bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(
                 grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
                 for i in CdD[d]) 
-                <= math.ceil(Vlpd.get((l,d), 0) / Vd[d] * len(Cd[d]))
+                <= math.ceil(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
             for l in L for d in D)
 
 # lower bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(
                 grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
                 for i in CdD[d]) 
-                <= math.floor(Vlpd.get((l,d),0) / Vd[d] * len(Cd[d]) / 2)
+                <= math.floor(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
             for l in L for d in D)
+
+# get total pairs within tolerance
+m.addConstrs(grb.quicksum(
+                grb.quicksum(
+                    xijd[i,j,d] for j in Cd[d] if j != i)
+                for i in CdD[d]) <= Pd[d] + delta
+    for d in D)
+
+m.addConstrs(grb.quicksum(
+                grb.quicksum(
+                    xijd[i,j,d] for j in Cd[d] if j != i)
+                for i in CdD[d]) >= Pd[d] - delta
+    for d in D)
+
+# get total solos within tolerance
+m.addConstrs(
+                grb.quicksum(
+                    yid[i,d] for i in Cd[d])
+                <= Sd[d] + epsi
+    for d in D)
+
+m.addConstrs(
+                grb.quicksum(
+                    yid[i,d] for i in Cd[d])
+                >= Sd[d] - epsi
+    for d in D)
 
 # make wijld do what i want it to
 m.addConstrs(wijld[i,j,l,d] <= xijd[i,j,d] for d in D for i in CdD[d] 
