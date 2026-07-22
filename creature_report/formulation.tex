@@ -1,0 +1,157 @@
+\documentclass[11pt,twoside]{article}
+\usepackage{geometry}
+\usepackage{enumerate}
+\usepackage{latexsym,booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage[singlespacing]{setspace}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{float}
+
+\geometry{a4paper,left=2cm,right=2.0cm, top=2cm, bottom=2.0cm}
+
+\newtheorem{Definition}{Definition}
+\newtheorem{Theorem}{Theorem}
+\newtheorem{Lemma}{Lemma}
+\newtheorem{Corollary}{Corollary}
+\newtheorem{Proposition}{Proposition}
+\newtheorem{Algorithm}{Algorithm}
+\numberwithin{Theorem}{section}
+\numberwithin{Definition}{section}
+\numberwithin{Lemma}{section}
+\numberwithin{Algorithm}{section}
+\numberwithin{equation}{section}
+
+\newenvironment{modelsets}{
+\paragraph{Sets}\mbox{}
+\begin{table}[H]
+\begin{tabular}{ll}
+}{
+\end{tabular}
+\end{table}
+}
+
+\newenvironment{modelparams}{
+\paragraph{Parameters}\mbox{}
+\begin{table}[H]
+\begin{tabular}{ll}
+}{
+\end{tabular}
+\end{table}
+}
+
+\newenvironment{modelvars}{
+\paragraph{Decision Variables}\mbox{}
+\begin{table}[H]
+\begin{tabular}{ll}
+}{
+\end{tabular}
+\end{table}
+}
+
+\begin{document}
+
+\pagestyle{empty}
+
+
+\begin{modelsets}
+	$D$ & set of days to schedule caregivers\\
+	$C^d$ & set of caregivers available on day $d$\\
+	$C_D^d \subseteq C^d$ & set of driving caregivers available on day $d$\\
+	$L$ & set of localities served
+\end{modelsets}
+
+\begin{modelparams}
+	$d_{ij}$ & \quad distance or drive time between caregivers $i$ and $j$\\
+	$r_{jl}$ & \quad distance or drive time between caregiver $j$ and locality $l$\\
+	$F_{ij}^d$ & \quad number of pair visits on day $d$ where both caregivers $i$ and $j$ are familiar to the client\\
+	$f_{ij}^d$ & \quad number of pair visits on day $d$ where either caregiver $i$ or $j$ are familiar to the client\\
+	$s_i^d$ & \quad number of solo visits on day $d$ where caregiver $i$ is familiar to the client\\
+	$V^d$ & \quad total visit minutes on day $d$\\
+	$V_P^d$ & \quad total pair visit minutes on day $d$\\
+	$V_s^d$ & \quad total solo visit minutes on day $d$\\
+	$p = \frac{V_P^d}{V^d}$ & \quad share of visit minutes on day $d$ requiring a caregiving pair\\
+	$V_{Pl}^d$ & \quad visit minutes in locality $l$ on day $d$ requiring a caregiving pair\\
+	$V_{sl}^d$ & \quad visit minutes in locality $l$ on day $d$ requiring a single caregiver\\
+	$l_i$ & \quad binary indicator whether caregiver $i$ is located in locality $l$\\
+	$K$ & \quad maximum distance carers will travel for pairing
+\end{modelparams}
+
+\begin{modelvars}
+	$v_{il}^d$ & \quad variable representing the linearization of the product of binary variables $z_{il}^d y_{i}^d$\\
+	$w_{ijl}^d$ & \quad variable representing the linearization of the product of binary variables $z_{jl}^d x_{ij}^d$
+\end{modelvars}
+\begin{table}[H]
+	\begin{tabular}{l}
+		$x_{ij}^d = 
+			\begin{cases}
+				1 & \text{if caregiver } i \in C_D^d \text{paired with caregiver } j \in C^d \setminus \{i\} \text{on day } d\\
+				0 & \text{else}
+			\end{cases}
+		$ \\
+		$y_{j}^d =
+			\begin{cases}
+				1 & \text{if caregiver } j \in C^d \text{is unpaired (i.e. does solo visits) on day } d\\
+				0 & \text{else}
+			\end{cases}
+		$ \\
+		$z_{il}^d = 
+			\begin{cases}
+				1 & \text{if caregiver } i \in C_D^d \text{assigned to locality } l \in L \text{on day } d\\
+				0 & \text{else}
+			\end{cases}
+		$
+	\end{tabular}
+\end{table}
+
+\begin{align}
+	\max \quad 
+	& \sum\nolimits_{d \in D} \sum\nolimits_{j\in C^d} \left( s_j y_j^d + \sum\nolimits_{i \in C_D^d \setminus \{j\}} \left( F_{ij}^d x_{ij}^d + f_{ij}^d x_{ij}^d \right)\right) 
+	\label{obj1} \\
+	\min \quad
+	& \sum\nolimits_{d \in D} \sum\nolimits_{j\in C^d} \sum\nolimits_{i \in C_D^d \setminus \{j\}} d_{ij} x_{ij}^d + \sum\nolimits_{l \in L} r_{jl} \left( x_{ij}^d + y_j^d \right) 
+	\label{obj2} \\
+	\text{s.t.}\quad 
+	& y_j^d + \sum\nolimits_{i \in C_D^d} x_{ij}^d = 1
+	& \forall j \in C^d \setminus C_D^d , \forall d \in D \label{assignWalkerOnce} \\
+	& y_j^d + \sum\nolimits_{i \in C_D^d \setminus \{j \}} x_{ij}^d + \sum\nolimits_{k \in C^d \setminus \{j\}} x_{jk}^d = 1
+	& \forall j \in C_D^d , \forall d \in D \label{assignDriverOnce} \\
+	& \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} w_{ijl}^d \leq \lceil \tfrac{p |C_D^d|}{1 + p} \rceil + \epsilon
+	& \forall d \in D , \forall l \in L \label{upperPairLocale} \\
+	& \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} w_{ijl}^d \geq \lfloor \tfrac{p |C_D^d|}{1 + p} \rfloor - \epsilon
+	& \forall d \in D , \forall l \in L \label{lowerPairLocale} \\
+	& \sum\nolimits_{j \in C^d \setminus C_D^d} \left( l_j y_j^d + \sum\nolimits_{i\in C_D^d} v_{il}^d \right) \leq \lceil |C_D^d| - \tfrac{p |C_D^d|}{1 + p} \rceil + 2 \epsilon
+	& \forall d \in D, \forall l \in L \label{upperSoloLocale} \\
+	& \sum\nolimits_{j \in C^d \setminus C_D^d} \left( l_j y_j^d + \sum\nolimits_{i\in C_D^d} v_{il}^d \right) \geq \lfloor |C_D^d| - \tfrac{p |C_D^d|}{1 + p} \rfloor - 2 \epsilon
+	& \forall d \in D, \forall l \in L \label{lowerSoloLocale} \\
+	& x_{ij}^d = 0 
+	& \forall i \in C_D^d, \forall j \in \{\, j \in C^d \mid d_{ij} \ge K \,\} \label{pairDistLimit}\\
+	& \lfloor \tfrac{p |C_D^d|}{1 + p} \rfloor - \epsilon \leq \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} x_{ij}^d \leq \lceil \tfrac{p |C_D^d|}{1 + p} \rceil + \epsilon
+	& \forall d \in D \label{pairTolerance}\\
+	& \lfloor |C_D^d| - \tfrac{p |C_D^d|}{1 + p} \rfloor - 2 \epsilon \leq \sum\nolimits_{i \in C^d} y_i^d \leq \lceil |C_D^d| - \tfrac{p |C_D^d|}{1 + p} \rceil + 2 \epsilon
+	& \forall d \in D \label{soloTolerance}\\
+	& 0 \leq w_{ijl}^d \leq x_{ij}^d
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin1} \\
+	& w_{ijl}^d \leq z_{jl}^d
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin3} \\
+	& w_{ijl}^d \geq z_{jl}^d + x_{ij}^d - 1
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall l \in L, \forall d \in D \label{wLin4} \\
+	& 0 \leq v_{il}^d \leq y_{i}^d
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin1} \\
+	& v_{il}^d \leq z_{il}^d
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin3} \\
+	& v_{il}^d \geq z_{jl}^d + y_{i}^d - 1
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{vLin4} \\
+	& x_{ij}^d \in \{0,1\}
+	& \forall i \in C_D^d, \forall j \in C^d \setminus \{i\}, \forall d \in D \label{domX} \\
+	& y_i^d \in \{0,1\}
+	& \forall i \in C^d, \forall d \in D \label{domY} \\
+	& z_{il}^d \in \{0,1\}
+	& \forall i \in C^d, \forall l \in L, \forall d \in D \label{domZ}
+\end{align}
+
+\end{document}
