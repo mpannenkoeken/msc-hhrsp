@@ -10,7 +10,6 @@ import pickle
 HELPERS AND FILES
 """
 
-
 # figure out the folder we're currently in
 currDir = Path(__file__).resolve().parent
 currParent = currDir.parent
@@ -28,6 +27,13 @@ def to_minutes(x):
         return None
     h, m = map(int, str(x).strip().split(":"))
     return 60*h + m
+
+def within_shift(shift_start, shift_end, visit_start):
+    return (shift_start <= visit_start) and (shift_end >= visit_start)
+
+def known_unit(units, unit, known_set):
+    members = units[unit]["members"]
+    return any(m in known_set for m in members)
 
 """
 IMPORTS
@@ -55,6 +61,14 @@ with open(carersFile) as f:
 carers_df = pd.DataFrame(carersData, columns=header, index=None)
 carers_df["Carer ID"] = carers_df["Carer ID"].astype(int)
 
+# convert the carer start/end times to a workable type
+carers_df["start_min"] = pd.to_timedelta(carers_df["Shift Start Time"]).dt.total_seconds() // 60
+carers_df["end_min"] = pd.to_timedelta(carers_df["Shift End Time"]).dt.total_seconds() // 60
+
+# make a lookup table for carer shift start/end
+starts = carers_df.set_index("Carer ID")["start_min"].to_dict()
+ends = carers_df.set_index("Carer ID")["end_min"].to_dict()
+
 # the client file ends in a ragged column
 clientsData = []
 with open(clientsFile) as f:
@@ -76,7 +90,8 @@ with open(clientsFile) as f:
         
 clients_df = pd.DataFrame(clientsData, columns=["Client ID", "Gender Preference", "Known Carers"], index=None)
 clients_df["Client ID"] = clients_df["Client ID"].astype(int)
-# these files should be relatively straightforward
+
+# these files should be relatively straightforward (they aren't)
 visits_df = pd.read_csv(visitsFile, sep=";", index_col="Visit ID")
 
 string_dur = visits_df["Visit Duration"].astype(str).str.strip()
@@ -89,8 +104,14 @@ visits_df["Visit Duration"] = (
     pd.to_timedelta(hm[1].astype(int), unit="m")
 )
 
+# standardize naming convention across frames
 visits_df = visits_df.rename(columns={"ClientID": "Client ID"})
 
+# normalize time windows to workable type
+visits_df["Time Window Start"] = pd.to_timedelta(visits_df["Time Window Start"]).dt.total_seconds() // 60
+visits_df["Time Window End"] = pd.to_timedelta(visits_df["Time Window End"]).dt.total_seconds() // 60
+
+# split pair visits from single visits
 pair_visits_df = visits_df[visits_df["Number of Carers"] == 2]
 single_visits_df = visits_df[visits_df["Number of Carers"] == 1]
 
@@ -127,11 +148,31 @@ Cd = (
     .to_dict()
 )
 
+
 CdD = (
     drivers_exploded.groupby("Available Working Days")["Carer ID"]
     .apply(list)
     .to_dict()
 )
+
+allCouples = {d: [] for d in Days}
+driveCouples = {d: [] for d in Days}
+
+for d in Days:
+    carers_d = list(Cd[d])
+    
+    for idx, c in enumerate(carers_d):
+        for c_prime in carers_d[idx+1:]:
+            
+            # check non-overlapping shifts
+            if ends[c] <= starts[c_prime] or ends[c_prime] <= starts[c]:
+                
+                newCouple = (c, c_prime)
+                
+                allCouples[d].append(newCouple)
+                
+                if c in CdD[d] and c_prime in CdD[d]:
+                    driveCouples[d].append(newCouple)
 
 Vd = visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
 Vpd = pair_visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
@@ -147,9 +188,24 @@ for d in Days:
 
 K = 40
 
-explode_singles = single_visits_df.explode("Known Carers")
+sid = defaultdict(lambda: pd.Timedelta(0))
 
-sid = explode_singles.groupby(["Known Carers", "Visit Date"])["Visit Duration"].sum().to_dict()
+single_visits_df.columns = single_visits_df.columns.str.strip().str.replace(" ", "_").str.lower()
+
+for row in single_visits_df.itertuples(index=False):
+    d = getattr(row, "visit_date")
+    duration = getattr(row, "visit_duration")
+    known = set(map(int, getattr(row, "known_carers")))
+    start = getattr(row, "time_window_start")
+    
+    Cd_set = set(map(int, Cd[d]))
+    
+    known_in_Cd = known & Cd_set
+    
+    for i in known_in_Cd:
+        if within_shift(starts[i], ends[i], start):
+            sid[(i,d)] += duration
+    
 
 Fijd = defaultdict(lambda: pd.Timedelta(0))
 fijd = defaultdict(lambda: pd.Timedelta(0))
@@ -159,30 +215,55 @@ pair_visits_df.columns = pair_visits_df.columns.str.strip().str.replace(" ", "_"
 for row in pair_visits_df.itertuples(index=False):
     d = getattr(row, "visit_date")
     duration = getattr(row, "visit_duration")
-    known = set(getattr(row, "known_carers"))
+    known = set(map(int, getattr(row, "known_carers")))
+    start = getattr(row, "time_window_start")
     
-    Cd_set = set(Cd[d])
-    CdD_set = set(CdD[d])
-    
-    known = set(map(int, known))
     Cd_set = set(map(int, Cd[d]))
     CdD_set = set(map(int, CdD[d]))
     
     known_in_Cd = known & Cd_set
     known_in_CdD = known & CdD_set
     
-    # identify pairs where both are known and get durations
+    # identify pairs w/ single designated driver where both are known and on duty
     for i in known_in_CdD:
+        # pure pairs first
         for j in known_in_Cd:
-            if i != j and j in known:
+            if i != j and within_shift(starts[i], ends[i], start) and within_shift(starts[j], ends[j], start):
+                # add that duration
                 Fijd[(i, j, d)] += duration
-    
-    # identify pairs where either are known and get durations (double count ANDs)
+        # pairs with a non-designated driver couple
+        for (j,k) in allCouples[d]:
+            if i != j and j in known and within_shift(starts[i], ends[i], start) and within_shift(starts[j], ends[j], start):
+                # add that duration
+                Fijd[(i,(j,k),d)] += duration
+            elif i != k and k in known and within_shift(starts[i], ends[i], start) and within_shift(starts[k], ends[k], start):
+                # add that duration
+                Fijd[(i,(j,k),d)] += duration
+                
+    # identify pairs w/ single designated driver where either are known 
+    # and both are on duty (double count ANDs)
     for i in CdD_set:
         for j in Cd_set:
-            if (i in known) or (j in known):
+            if ((i in known) or (j in known)) and i != j and within_shift(starts[i], ends[i], start) and within_shift(starts[j], ends[j], start):
+                # get durations
                 fijd[(i, j, d)] += duration
-       
+        for (j,k) in allCouples[d]:
+            if ((i in known) or (j in known)) and i != j and within_shift(starts[i], ends[i], start) and within_shift(starts[j], ends[j], start):
+                # get durations
+                fijd[(i, j, d)] += duration
+            elif ((i in known) or (k in known)) and i != k and within_shift(starts[i], ends[i], start) and within_shift(starts[k], ends[k], start):
+                # get durations
+                fijd[(i, j, d)] += duration
+                
+    # the same again except now the designated driver is a couple
+    for (i,k) in driveCouples[d]:
+        for j in known_in_Cd:
+            if i in known and within_shift(starts[i], ends[i], start) and within_shift[starts[j], ends[j], start]:
+                Fijd[((i,k),j,d)] += duration
+            elif k in known and within_shift(starts[k], ends[k], start) and within_shift[starts[j], ends[j], start]:
+                Fijd[((i,k),j,d)] += duration
+                
+    
 
 """
 CREATE LOCALITIES AND DERIVE RELEVANT SET AND PARAMETERS
