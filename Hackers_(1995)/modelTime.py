@@ -21,52 +21,44 @@ def normalize(df):
         by=list(df.columns), kind="mergesort"
                 ).reset_index(drop=True)
 
-def get_sol(D, Cd, CdD, L, xijd, yid, zild, li):
+def get_sol(D, units_d, L, xud, zild, lu):
     rows = []
     for d in D:
         # paired caregivers
-        for i in CdD[d]:
-            for j in Cd[d]:
-                if j != i:
-                    if xijd[i,j,d].X > 0.5:
-                        # find locality assignment
-                        lAssignment = next(
-                            (l for l in L if zild[i,l,d].X > 0.5),
-                            None
-                            )
-                        
-                        if lAssignment == None:
-                            lAssignment = next(l for l in L if li[(i,l)] == 1)
-                        
-                        rows.append({
-                            "Day": d,
-                            "Caregiver ID": i,
-                            "Partner ID (if any)": int(j),
-                            "Locale Assignment": lAssignment
-                            })
+        for u in (u for u in units_d[d] if u["pair"]):
+            if xud[u["id"],d] > 0.5:
+                # find locality assignment
+                lAssignment = next(
+                    (l for l in L if zild[u["id"],l,d].X > 0.5),
+                    None
+                    )
+                
+                if lAssignment == None:
+                    lAssignment = next(l for l in L if lu[(u["id"],l)] == 1)
+                
+                rows.append({
+                    "Day": d,
+                    "Unit ID": u["id"],
+                    "Locale Assignment": lAssignment
+                    })
                     
         # solo caregivers
-        for i in Cd[d]:
-            if yid[i,d].X > 0.5:
-                if i in CdD[d]:
-                    lAssignment = next(
-                        (l for l in L if zild[i,l,d].X > 0.5),
-                        None
-                        )
-                    if lAssignment == None:
-                        lAssignment = next(l for l in L if li[(i,l)] == 1)
-                    
-                    rows.append({
-                        "Day": d,
-                        "Caregiver ID": i,
-                        "Partner ID (if any)": None,
-                        "Locale Assignment": lAssignment
-                        })
-                else:
-                    lAssignment = next(l for l in L if li[(i,l)] == 1)
-                    rows.append({"Day": d, "Caregiver ID": i, 
-                                 "Partner ID (if any)": None, 
-                                 "Locale Assignment": lAssignment})
+        for u in (u for u in units_d[d] if u["solo"]):
+            if xud[u["id"],d] > 0.5:
+                # find locality assignment
+                lAssignment = next(
+                    (l for l in L if zild[u["id"],l,d].X > 0.5),
+                    None
+                    )
+                
+                if lAssignment == None:
+                    lAssignment = next(l for l in L if lu[(u["id"],l)] == 1)
+                
+                rows.append({
+                    "Day": d,
+                    "Unit ID": u["id"],
+                    "Locale Assignment": lAssignment
+                    })
     # save results
     currSol = pd.DataFrame(rows)
     return currSol
@@ -88,50 +80,45 @@ with open(carersFile, "rb") as f:
 
 D = data["D"]
 Cd = data["Cd"]
-CdD = data["CdD"]
+units_d = data["units_d"]
 L = data["L"]
+du = data["du"]
 dij = data["dij"]
-ril = data["ril"]
-Fijd = data["Fijd"]
-fijd = data["fijd"]
-sid = data["sid"]
+rul = data["rul"]
+Fud = data["Fud"]
+fud = data["fud"]
+sud = data["sud"]
 Vpd = data["Vpd"]
 Vsd = data["Vsd"]
 Vlpd = data["Vlpd"]
 Vlsd = data["Vlsd"]
 Pd = data["Pd"]
 Sd = data["Sd"]
-li = data["li"]
+lu = data["lu"]
 K = data["K"]
 
 # define the tolerances on geospatial solo/pair distributions
 epsi = 0 # tolerance on solo caregiving units
 delta = 0 # tolerance on pair caregiving units
 
-# do the set minus to get the non-drivers now instead of each time
-Cd_minus_CdD = {d: set(Cd[d]) - set(CdD[d]) for d in D}
-
 # Initialize the model
-m = grb.Model("Carer_Assignments")
+m = grb.Model("Caregiver_Assignments")
 
 """
 DECLARATION OF DECISION VARIABLES
 """
-# represents the linearization of $z_{il}^d y_{i}^d$
-vild = m.addVars(((i,l,d) for d in D for i in CdD[d] for l in L), 
-                 vtype=grb.GRB.CONTINUOUS)
-# represents the linearization of $z_{il}^d x_{ij}^d$
-wijld = m.addVars(((i,j,l,d) for d in D for i in CdD[d] 
-                   for j in Cd[d] if j != i for l in L), 
+# represents the linearization of $z_{ul}^d x_u^d$
+wuld = m.addVars(((u["id"],l,d) for d in D for u in units_d[d] 
+                   if u["driver"] for l in L), 
                   vtype=grb.GRB.CONTINUOUS)
 
-# 1 if i \in C_D^d paired with j \in C^d \setminus \{i\} on day d, 0 else
-xijd = m.addVars(((i,j,d) for d in D for i in CdD[d] for j in Cd[d] if j != i), 
+# 1 if unit u \in U^d assigned on day d, 0 else
+xud = m.addVars(((u["id"],d) for d in D for u in units_d[d]), 
                  vtype=grb.GRB.BINARY)
-# 1 if caregiver j \in C^d is unpaired (i.e. does solo visits) on day d, 0 else
-yid = m.addVars(((i,d) for d in D for i in Cd[d]), vtype=grb.GRB.BINARY)
-# 1 if caregiver i \in C_D^d assigned to locality l \in L on dayd, 0 else
-zild = m.addVars(((i,l,d) for d in D for i in CdD[d] for l in L), 
+
+# 1 if unit u \in U^d assigned to locality l \in L on day d, 0 else
+zuld = m.addVars(((u["id"],l,d) for d in D for u in units_d[d] 
+                   if u["driver"] for l in L), 
                  vtype=grb.GRB.BINARY)
 
 """
@@ -139,108 +126,96 @@ OBJECTIVES
 """
 # objective one is to maximize the potential of familiar visits
 potentialFamiliarVisits = grb.quicksum(
-                            grb.quicksum(sid.get((j,d),0) * yid[j,d] + 
-                                         grb.quicksum(Fijd.get((i,j,d),0) 
-                                                      * xijd[i,j,d]
-                                                      + fijd.get((i,j,d),0) 
-                                                      * xijd[i,j,d]
-                                                      for i in CdD[d] if i != j)
-                                         for j in Cd[d]) 
+                            grb.quicksum(sud.get((u["id"],d),0) * xud[u["id"],d] + 
+                                         grb.quicksum(Fud.get((v["id"],d),0) 
+                                                      * xud[v["id"],d]
+                                                      + fud.get((v["id"],d),0) 
+                                                      * xud[v["id"],d]
+                                                      for v in units_d[d] if v["type"] == "pair")
+                                         for u in units_d[d] if u["type"] == "solo") 
                             for d in D)
 # objective two is to minimize the travel time for caregivers' assignments
 carerTravelCeiling = grb.quicksum(
-                         grb.quicksum(
-                             grb.quicksum(dij[i].loc[j] * xijd[i,j,d] +
-                                    grb.quicksum(ril[(i,l)] * zild[i,l,d]
+                             grb.quicksum(du[u["id"]] * xud[u["id"],d] +
+                                    grb.quicksum(rul[(u["id"],l)] * zuld[u["id"],l,d]
                                         for l in L)
-                                 for i in CdD[d] if i != j)
-                             for j in Cd[d])
+                                 for u in units_d[d])
                         for d in D)
 """
 CONSTRAINTS
 """
-# assign each available caregiver once per day available (non-driver)
-m.addConstrs(yid[j,d] + grb.quicksum(xijd[i,j,d] for i in CdD[d] if i != j)
-             == 1 for d in D for j in Cd_minus_CdD[d])
-
-# assign each available caregiver once per day available (driver)
-m.addConstrs(yid[i,d] + 
-             grb.quicksum(xijd[i,j,d] for j in Cd[d] if j != i) +
-             grb.quicksum(xijd[j,i,d] for j in CdD[d] if j != i) == 1
-             for d in D for i in CdD[d])
+# assign each available caregiver once per day available
+m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d] if i in u["members"])
+             == 1 for d in D for i in Cd[d])
         
-# do not pair caregivers greater than K apart
+# do not assign u if an individual link is greater than K apart
 for d in D:
-    for i in CdD[d]:
-        for j in Cd[d]:
-            if dij[i].loc[j] > K:        
-                xijd[i,j,d].ub = 0
+    for u in units_d[d]:
+        members = [m for m in u["members"]]
+        for i in members:
+            for j in members:
+                if dij[i].loc[j] > K:        
+                    xud[u["id"],d].ub = 0
+                    
+# do not assign u if sum of links is greater than 2K apart
+for d in D:
+    for u in units_d[d]:
+        if du[d] > 2 * K:
+            xud[u["id"],d].ub = 0
                 
 # upper bound the solo units and their geospatial distribution
-m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
-             grb.quicksum(vild[i,l,d] for i in CdD[d]) <= 
+m.addConstrs(grb.quicksum(lu[(u["id"],l)] * xud[u["id"],d] for u in units_d[d] 
+                          if (u["type"] == "solo" and u["driver"] == False)) +
+             grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
+                          if (u["type"] == "solo" and u["driver"])) <= 
              math.ceil(Vlsd.get((l,d), 0) / Vsd[d] * (Sd[d] + epsi))
              for l in L for d in D)
 
 # lower bound the solo units and their geospatial distribution
-m.addConstrs(grb.quicksum(li[(i,l)] * yid[i,d] for i in Cd_minus_CdD[d]) +
-             grb.quicksum(vild[i,l,d] for i in CdD[d]) >= 
+m.addConstrs(grb.quicksum(lu[(u["id"],l)] * xud[u["id"],d] for u in units_d[d] 
+                          if (u["type"] == "solo" and u["driver"] == False)) +
+             grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
+                          if (u["type"] == "solo" and u["driver"])) >= 
              math.floor(Vlsd.get((l,d), 0) / Vsd[d] * (Sd[d] - epsi))
              for l in L for d in D)
 
 # upper bound the pair units and their geospatial distribution
-m.addConstrs(grb.quicksum(
-                grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) 
+m.addConstrs(grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
+                             if u["type"] == "pair") 
                 <= math.ceil(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
             for l in L for d in D)
 
 # lower bound the pair units and their geospatial distribution
-m.addConstrs(grb.quicksum(
-                grb.quicksum(wijld[i,j,l,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) 
-                <= math.floor(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
+m.addConstrs(grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
+                             if u["type"] == "pair")
+                >= math.floor(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
             for l in L for d in D)
 
 # get total pairs within tolerance
-m.addConstrs(grb.quicksum(
-                grb.quicksum(
-                    xijd[i,j,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) <= Pd[d] + delta
-    for d in D)
+m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
+                          if u["type"] == "pair")
+             <= Pd[d] + delta for d in D)
 
-m.addConstrs(grb.quicksum(
-                grb.quicksum(
-                    xijd[i,j,d] for j in Cd[d] if j != i)
-                for i in CdD[d]) >= Pd[d] - delta
-    for d in D)
+m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
+                          if u["type"] == "pair")
+             >= Pd[d] - delta for d in D)
 
 # get total solos within tolerance
-m.addConstrs(
-                grb.quicksum(
-                    yid[i,d] for i in Cd[d])
-                <= Sd[d] + epsi
-    for d in D)
+m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
+                          if u["type"] == "solo")
+                <= Sd[d] + epsi for d in D)
 
-m.addConstrs(
-                grb.quicksum(
-                    yid[i,d] for i in Cd[d])
-                >= Sd[d] - epsi
-    for d in D)
+m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
+                          if u["type"] == "solo")
+             >= Sd[d] - epsi for d in D)
 
-# make wijld do what i want it to
-m.addConstrs(wijld[i,j,l,d] <= xijd[i,j,d] for d in D for i in CdD[d] 
-             for j in Cd[d] if j != i for l in L)
-m.addConstrs(wijld[i,j,l,d] <= zild[i,l,d] for d in D for i in CdD[d] 
-             for j in Cd[d] if j != i for l in L)
-m.addConstrs(wijld[i,j,l,d] >= zild[i,l,d] + xijd[i,j,d] - 1
-             for d in D for i in CdD[d] for j in Cd[d] if j != i for l in L)
-
-# make vild do what i want it to
-m.addConstrs(vild[i,l,d] <= yid[i,d] for d in D for i in CdD[d] for l in L)
-m.addConstrs(vild[i,l,d] <= zild[i,l,d] for d in D for i in CdD[d] for l in L)
-m.addConstrs(vild[i,l,d] >= yid[i,d] + zild[i,l,d] - 1
-             for d in D for i in CdD[d] for l in L)
+# make wuld do what i want it to
+m.addConstrs(wuld[u["id"],l,d] <= xud[u["id"],d] for d in D for u in units_d[d] 
+             if u["driver"] for l in L)
+m.addConstrs(wuld[u["id"],l,d] <= zuld[u["id"],l,d] for d in D for u in units_d[d] 
+             if u["driver"] for l in L)
+m.addConstrs(wuld[u["id"],l,d] >= zuld[u["id"],l,d] + xud[u["id"],d] - 1
+             for d in D for u in units_d[d] if u["driver"] for l in L)
 
 """
 GUROBI WORKS ITS MAGIC
@@ -254,7 +229,7 @@ maxTravel = carerTravelCeiling.getValue()
 
 allResults = []
 # store objective 1 results
-maxTravelSol = get_sol(D, Cd, CdD, L, xijd, yid, zild, li)
+maxTravelSol = get_sol(D, units_d, L, xud, zuld, lu)
 allResults.append(maxTravelSol)
 
 print(f"Maximum Observed Travel Ceiling: {maxTravel}")
@@ -264,7 +239,7 @@ travel = m.addConstr(carerTravelCeiling <= maxTravel)
 
 # optimize for travel time/objective 2
 m.setObjective(carerTravelCeiling, sense=grb.GRB.MINIMIZE)
-m.update
+m.update()
 m.optimize()
 # store travel time when minimized
 minTravel = m.ObjVal
