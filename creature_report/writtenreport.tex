@@ -28,44 +28,18 @@
  
 \newenvironment{modelsets}
   {\paragraph{Sets}\mbox{}\par\nobreak\vspace{-0.5\baselineskip}
-   \begin{tabularx}{\linewidth}{@{}l @{\quad} >{\raggedright\arraybackslash}X@{}}}
-  {\end{tabularx}\par\vspace{\baselineskip}}
+   \begin{tabular}{@{}l @{\quad} p{0.85\linewidth}@{}}}
+  {\end{tabular}\par\vspace{\baselineskip}}
  
 \newenvironment{modelparams}
   {\paragraph{Parameters}\mbox{}\par\nobreak\vspace{-0.5\baselineskip}
-   \begin{tabularx}{\linewidth}{@{}l @{\quad} >{\raggedright\arraybackslash}X@{}}}
-  {\end{tabularx}\par\vspace{\baselineskip}}
+   \begin{tabular}{@{}l @{\quad} p{0.85\linewidth}@{}}}
+  {\end{tabular}\par\vspace{\baselineskip}}
  
 \newenvironment{modelvars}
   {\paragraph{Decision Variables}\mbox{}\par\nobreak\vspace{-0.5\baselineskip}
-   \begin{tabularx}{\linewidth}{@{}l @{\quad} >{\raggedright\arraybackslash}X@{}}}
-  {\end{tabularx}\par\vspace{\baselineskip}}
-
-
-% *********************************************************************
-% Headings and page layout
-% *********************************************************************
-\usepackage{fancyhdr} % to design my own headings
-\usepackage{titlesec, titletoc} % to design my own toc and part/chapter/section styles
-
-% page style of "chapter"
-\titleformat{\chapter}[display]{\LARGE \bfseries}
-	{\Large Chapter \thesection \thispagestyle{plain}}{0ex}{\titlerule\vspace{2ex}}
-\titlespacing*{\chapter}{0ex}{-8ex}{8ex}
-
-\titleformat{\section}[display]{\LARGE \bfseries}
-	{\Large Section \thesection \thispagestyle{plain}}{0ex}{\titlerule\vspace{2ex}}
-\titlespacing*{\section}{0ex}{-8ex}{8ex}
-
-% definition of headings
-\fancypagestyle{memo}{
-	\pagestyle{fancy}
-	\fancyhf{}
-	\fancyhead[RO,LE]{\thepage}
-	\fancyhead[RE]{\rightmark}
-	\fancyhead[LO]{\leftmark}
-	\renewcommand\headrulewidth{0.5pt}
-}
+   \begin{tabular}{@{}l @{\quad} p{0.85\linewidth}@{}}}
+  {\end{tabular}\par\vspace{\baselineskip}}
 
 \begin{document}
 
@@ -186,7 +160,11 @@ Due to the significant human impact of healthcare contexts, certain consideratio
 
 \section{Problem Statement}
 \label{sec:prob}
-The problem put forth in this case involves one such home healthcare company. The company employs approximately 60 caregivers and services approximately 150 clients. Caregivers may work either a full-time, morning, or afternoon shift pattern, and they may or may not have the ability to drive. Additionally, each caregiver is available for a given subset of days in the planning window. Caregivers are generally not compensated for travel time, though there can be exceptions to this rule for certain, extenuating circumstances. Clients typically require between three and five visits daily, with most visits lasting between 30 and 60 minutes. Each of these visits must occur within a given time window, and each visit requires either one or two caregivers present. Clients typically prefer visits to be performed by caregivers already known to the client, and clients can specify a preference on the gender of the caregiver(s) assigned to perform their visit(s). 
+This case involves the scheduling and routing decisions faced by a home healthcare company. The company employs approximately 50 caregivers and services approximately 150 clients. Caregivers may work either a full-time, morning, or afternoon shift pattern,  and each caregiver is available for a given subset of days in the planning window. This information is known and decided on a two week planning horizon due to minimum work thresholds set by the UK Home Office for caregivers on sponsored work visas. Caregivers may or may not have the ability to drive, with driving caregivers able to cover a larger service area than non-drivers. That said, caregivers are generally not compensated for time spent on their shift travelling, though there can be exceptions to this rule for certain, extenuating circumstances. Additionally, approximately 90\% of all caregivers identify as female, and all caregivers share functionally equivalent qualifications sufficient to perform any visit the company may have committment to perform. 
+
+Clients typically require between three and five visits daily, with most visits lasting between 30 and 60 minutes. Each of these visits must occur within a given time window, and each visit requires either one or two caregivers present. Clients typically prefer visits to be performed by caregivers already known to the client, and clients can specify a preference on the gender of the caregiver(s) assigned to perform their visit(s). Clients and their caregivers are spread across the company's service area, which covers three municipalities. The distribution of clients and caregivers across this area is not uniform, and this disparity must be taken into account when routing and scheduling visits. On any given day, the total duration of all visit minutes requiring two caregivers present represents about 40\% of the total duration of all visit minutes which must be served on that day. 
+
+The problem in this case, therefore, is to identify an optimal or near-optimal allocation or scheduling of caregivers to the set of visits the company is committed to service and the order or routing in which the caregivers ought to perform their assigned visits. Attention must be paid to the shift pattern that assigned caregivers work, whether assigned caregivers are able to drive or are paired with another caregiver able to drive, and whether caregivers match the gender preferences of the client. Because all caregivers functionally share the same qualifications, there is no need in this case to consider visits that can only be performed by a subset of caregivers, with the exception of cases with an expressed gender preference.  
 
 \clearpage
 
@@ -202,79 +180,75 @@ The problem put forth in this case involves one such home healthcare company. Th
 \begin{modelsets}
 	$D$ & set of days to schedule caregivers\\
 	$C^d$ & set of caregivers available on day $d$\\
-	$C_D^d \subseteq C^d$ & set of driving caregivers available on day $d$\\
-	$L$ & set of localities served\\
+	$U^d$ & set of feasible caregiving units available on day $d$\\
+	$U_p^d \subset U^d$ & set of feasible caregiving units of effective size two available on day $d$\\
+	$U_s^d \subset U^d$ & set of feasible caregiving units of effective size one available on day $d$\\
+	$U_D^d \subset U^d$ & set of feasible caregibing units available on day $d$ containing an equivalent full-time driver\\
+	$L$ & set of localities served
 \end{modelsets}
 
 \begin{modelparams}
-	$d_{ij}$ & distance or drive time between caregivers $i$ and $j$\\
-	$r_{jl}$ & distance or drive time between caregiver $j$ and locality $l$\\
-	$F_{ij}^d$ & number of pair visits on day $d$ where both caregivers $i$ and $j$ are familiar to the client\\
-	$f_{ij}^d$ & number of pair visits on day $d$ where either caregiver $i$ or $j$ are familiar to the client\\
-	$s_i^d$ & number of solo visits on day $d$ where caregiver $i$ is familiar to the client\\
-	$V^d$ & total visit minutes on day $d$\\
-	$V_P^d$ & total pair visit minutes on day $d$\\
-	$V_s^d$ & total solo visit minutes on day $d$\\
-	$p = \frac{V_P^d}{V^d}$ & share of visit minutes on day $d$ requiring a caregiving pair\\
-	$V_{Pl}^d$ & visit minutes in locality $l$ on day $d$ requiring a caregiving pair\\
-	$V_{sl}^d$ & visit minutes in locality $l$ on day $d$ requiring a single caregiver\\
-	$l_i$ & binary indicator whether caregiver $i$ is located in locality $l$\\
+	$d_{ij}$ & driving time between caregivers $i \in C^d$ and $j \in C^d$\\
+	$d_u$ & driving time required to create unit $u$\\
+	$r_{ul}$ & driving time required for unit $u$ to reach locality $l$\\
+	$F_u^d$ & total duration of pair visits on day $d$ where both active caregivers in unit $u \in U_p^d$ are familiar to the client\\
+	$f_u^d$ & total duration of pair visits on day $d$ where either active caregiver in unit $u \in U_p^d$ is familiar to the client\\
+	$s_u^d$ & total duration of solo visits on day $d$ where the active caregiver in unit $u \in U_s^d$ is familiar to the client\\
+	$V^d$ & total duration of all visits on day $d$\\
+	$V_P^d$ & total duration of all visits on day $d$ requiring two caregivers present\\
+	$V_s^d$ & total duration of all visits on day $d$ requiring one caregiver present\\
+	$p^d = \frac{V_P^d}{V^d}$ & share of total visit duration on day $d$ requiring a caregiving pair\\
+	$T^d = \tfrac{p |C_D^d|}{1 + p}$ & target number of caregiving pairs to assign on day $d$\\
+	$V_{Pl}^d$ & total visit duration in locality $l$ on day $d$ requiring a caregiving pair\\
+	$V_{sl}^d$ & total visit duration in locality $l$ on day $d$ requiring a single caregiver\\
+	$l_u$ & binary indicator whether caregiver unit $u$ is located in locality $l$\\
 	$K$ & maximum distance carers will travel for pairing\\
 \end{modelparams}
 
 \begin{modelvars}
-	$v_{il}^d$ & variable representing the linearization of the product of binary variables $z_{il}^d y_{i}^d$\\
-	$w_{ijl}^d$ & variable representing the linearization of the product of binary variables $z_{jl}^d x_{ij}^d$\\
+	$w_{ul}^d$ & variable representing the linearization of the product of binary variables $z_{ul}^d x_u^d$\\
 \end{modelvars}
 \[
-		x_{ij}^d = 
+		x_u^d = 
 			\begin{cases}
-				1 & \text{if caregiver } i \in C_D^d \text{paired with caregiver } j \in C^d \setminus \{i\} \text{on day } d\\
+				1 & \text{if caregiving unit } u \in U^d \text{is assigned on day } d\\
 				0 & \text{else}
 			\end{cases}
-		\\
-		y_{j}^d =
-			\begin{cases}
-				1 & \text{if caregiver } j \in C^d \text{is unpaired (i.e. does solo visits) on day } d\\
-				0 & \text{else}
-			\end{cases}
-		\\
-		z_{il}^d = 
-			\begin{cases}
-				1 & \text{if caregiver } i \in C_D^d \text{assigned to locality } l \in L \text{on day } d\\
-				0 & \text{else}
-			\end{cases}
-		
 \]
 
+\[
+		z_{ul}^d = 
+			\begin{cases}
+				1 & \text{if caregiving unit } u \in U_D^d \text{assigned to locality } l \in L \text{on day } d\\
+				0 & \text{else}
+			\end{cases}
+\]
 
 \begin{footnotesize}
 \begin{align}
 \max \quad
-& \sum\nolimits_{d \in D} \sum\nolimits_{j\in C^d} \left( s_j y_j^d + \sum\nolimits_{i \in C_D^d \setminus \{j\}} \left( F_{ij}^d x_{ij}^d + f_{ij}^d x_{ij}^d \right)\right)
+& \sum\nolimits_{d \in D} \left( \sum\nolimits_{u \in U_s^d}  s_u^d x_u^d + \sum\nolimits_{v \in U_p^d} (F_v^d + f_v^d) x_v^d  \right)
 \label{obj1} \\
 \min \quad
-& \sum\nolimits_{d \in D} \sum\nolimits_{j\in C^d} \sum\nolimits_{i \in C_D^d \setminus \{j\}} d_{ij} x_{ij}^d + \sum\nolimits_{l \in L} r_{jl} \left( x_{ij}^d + y_j^d \right)
+& \sum\nolimits_{d \in D} \left( \sum\nolimits_{u \in U^d} \left( d_u x_u^d + \sum\nolimits_{l \in L} r_{ul} w_{ul}^d \right) \right)
 \label{obj2} \\
 \text{s.t.}\quad
-& y_j^d + \sum\nolimits_{i \in C_D^d} x_{ij}^d = 1
-&& \forall j \in C^d \setminus C_D^d,\ d \in D \label{assignWalkerOnce} \\
-& y_j^d + \sum\nolimits_{i \in C_D^d \setminus \{j \}} x_{ij}^d + \sum\nolimits_{k \in C^d \setminus \{j\}} x_{jk}^d = 1
-&& \forall j \in C_D^d,\ d \in D \label{assignDriverOnce} \\
-& \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} w_{ijl}^d \leq \lceil \tfrac{p |C_D^d|}{1 + p} + \epsilon \rceil
+& \sum\nolimits_{u \in \{u \in U^d \mid i \in u \}} x_u^d = 1
+&& \forall i \in C^d,\ d \in D \label{assignOnce} \\
+& \sum\nolimits_{u \in U_p^d} w_{ul}^d \leq \lceil \tfrac{V_{Pl}^d}{V_P^d} T^d \rceil + \epsilon
 && \forall d \in D,\ l \in L \label{upperPairLocale} \\
-& \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}}  w_{ijl}^d \geq \lfloor \tfrac{p |C_D^d|}{1 + p} - \epsilon \rfloor
+& \sum\nolimits_{u \in U_p^d} w_{ul}^d \geq \lfloor \tfrac{V_{Pl}^d}{V_P^d} T^d \rfloor - \epsilon
 && \forall d \in D,\ l \in L \label{lowerPairLocale} \\
-& \sum\nolimits_{j \in C^d \setminus C_D^d} \left( l_j y_j^d + \sum\nolimits_{i\in C_D^d} v_{il}^d \right) \leq \lceil |C_D^d| - \tfrac{p |C_D^d|}{1 + p} + 2 \epsilon \rceil
+& \sum\nolimits_{u \in U_s^d} w_{ul}^d \leq \lceil |C^d| - T \epsilon \rceil + 2\epsilon
 && \forall d \in D,\ l \in L \label{upperSoloLocale} \\
-& \sum\nolimits_{j \in C^d \setminus C_D^d} \left( l_j y_j^d + \sum\nolimits_{i\in C_D^d} v_{il}^d \right) \geq \lfloor |C_D^d| - \tfrac{p |C_D^d|}{1 + p} - 2 \epsilon \rfloor
+& \sum\nolimits_{u \in U_s^d} w_{ul}^d \geq \lfloor |C^d| - T \rfloor - 2 \epsilon
 && \forall d \in D,\ l \in L \label{lowerSoloLocale} \\
-& \lfloor \tfrac{p |C_D^d|}{1 + p} \rfloor - \epsilon \leq \sum\nolimits_{i \in C_D^d} \sum\nolimits_{j \in C^d \setminus \{ i \}} x_{ij}^d \leq \lceil \tfrac{p |C_D^d|}{1 + p} \rceil + \epsilon
+& T - \epsilon \leq \sum\nolimits_{u \in U_p^d} x_u^d \leq T + \epsilon
 && \forall d \in D \label{pairTolerance}\\
-& \lfloor |C_D^d| - \tfrac{p |C_D^d|}{1 + p} \rfloor - 2 \epsilon \leq \sum\nolimits_{i \in C^d} y_i^d \leq \lceil |C_D^d| - \tfrac{p |C_D^d|}{1 + p} \rceil + 2 \epsilon
+& |C^d| - T - 2 \epsilon \leq \sum\nolimits_{u \in U_s^d} x_u^d \leq |C^d| - T + 2 \epsilon
 && \forall d \in D \label{soloTolerance}\\
-& x_{ij}^d = 0
-&& \forall i \in C_D^d,\ j \in \{\, j \in C^d \mid d_{ij} \ge K \,\} \label{pairDistLimit}\\
+& x_u^d = 0
+&& \forall u \in \{\, u \in U^d \mid d_u \ge 2K \lor d_{ij} \ge K \forall (i,j) \in u \,\} \label{pairDistLimit}\\
 %% --- example of the "still too long" fallback pattern ---
 & 0 \leq w_{ijl}^d \leq x_{ij}^d
 \label{wLin1} \\

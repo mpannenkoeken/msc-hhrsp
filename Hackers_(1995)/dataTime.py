@@ -32,7 +32,9 @@ def to_minutes(x):
 # check whether a visit window can start during an agent's shift
 # we only care that the visit *can* begin during the shift
 def within_shift(shift_start, shift_end, visit_start, visit_end):
-    return (shift_start <= visit_start <= shift_end) or (shift_start <= visit_end <= shift_end)
+    return (shift_start <= visit_start <= shift_end) or (shift_start 
+                                                         <= visit_end <= 
+                                                         shift_end)
 
 
 # check if a unit (agent or couple) is familiar with a client
@@ -108,7 +110,11 @@ with open(clientsFile) as f:
         clientsData.append(row)
 
 # create a dataframe from the relevant extracted data and cast ids as ints
-clients_df = pd.DataFrame(clientsData, columns=["Client ID", "Gender Preference", "Known Carers"], index=None)
+clients_df = pd.DataFrame(clientsData, 
+                          columns=["Client ID", 
+                                   "Gender Preference", 
+                                   "Known Carers"], 
+                          index=None)
 clients_df["Client ID"] = clients_df["Client ID"].astype(int)
 
 # create a dataframe from the visit data file
@@ -177,7 +183,8 @@ Days = np.array(visits_df["Visit Date"].unique())
 
 # figure out which carers and driving carers we have on those days
 carers_exploded = carers_df.explode("Available Working Days")
-drivers_exploded = carers_exploded.loc[carers_exploded["Driver"].astype(int) == 1]
+drivers_exploded = carers_exploded.loc[
+    carers_exploded["Driver"].astype(int) == 1]
 
 # grab every carer id available daily
 Cd = (
@@ -227,62 +234,104 @@ BUILD FEASIBLE UNITS PER DAY
 feasibleUnits_d = {d: [] for d in Days}
 
 for d in Days:
-    
-    # --- solo real caregivers ---
+    seen_today = set()
+    # solo real caregivers
     for c in Cd[d]:
-        feasibleUnits_d[d].append({
-            "id": c,
-            "members": (c,),
+        members = (c,)
+        unitID = "_".join(map(str, members)) + "_s"
+        key = (tuple(sorted(members)), "solo")
+        unit = {
+            "id": unitID,
+            "members": members,
             "type": "solo",
             "couples": False,
             "driver": c in CdD[d]
-        })
+        }
+        if key not in seen_today:
+            seen_today.add(key)
+            feasibleUnits_d[d].append(unit)
     
-    # --- solo couples (treated as full-time frankenstein caregivers) ---
-    for c in allCouples[d]:
-        feasibleUnits_d[d].append({
-            "id": str(c[0]) + "_" + str(c[1]),
-            "members": c,
+    # solo couplings (treated as full-time frankenstein caregivers)
+    for (a,b) in allCouples[d]:
+        members = (a,b)
+        unitID = "_".join(map(str, members)) + "_s"
+        key = (tuple(sorted(members)), "solo")
+        unit = {
+            "id": unitID,
+            "members": members,
             "type": "solo",
             "couples": True,
-            "driver": c in driveCouples[d]
-        })
+            "driver": (a,b) in driveCouples[d]
+        }
+        if key not in seen_today:
+            seen_today.add(key)
+            feasibleUnits_d[d].append(unit)
     
-    # --- real driver + real caregiver ---
+    # real driver + real caregiver
     for i in CdD[d]:
         for j in Cd[d]:
-            if i != j and ((starts[i] <= starts[j] and ends[i] >= ends[j]) or (starts[j] <= starts[i] and ends[j] >= ends[i])):
-                feasibleUnits_d[d].append({
-                    "id": str(i) + "_" + str(j),
-                    "members": (i,j),
+            if i != j and ((starts[i] <= starts[j]
+                            and ends[i] >= ends[j]) or (starts[j] <= starts[i]
+                                                        and ends[j] >= ends[i]
+                                                        )):
+                members = (i,j)
+                unitID = "_".join(map(str,members)) + "_p"
+                key = (tuple(sorted(members)), "pair")
+                unit = {
+                    "id": unitID,
+                    "members": members,
                     "type": "pair",
                     "couples": False,
                     "driver": True
-                })
+                    }
+                
+                if key not in seen_today:
+                    seen_today.add(key)
+                    feasibleUnits_d[d].append(unit)
     
-    # --- driver couple + caregiver ---
+    # driver coupling + real caregiver
     for (a,b) in driveCouples[d]:
         for j in Cd[d]:
             if j not in (a,b):
-                feasibleUnits_d[d].append({
-                    "id": str(a) + "_" + str(b) + "_" + str(j),
-                    "members": (a,b,j),
+                members = (a,b,j)
+                unitID = "_".join(map(str,members)) + "_p"
+                key = (tuple(sorted(members)), "pair")
+                unit = {
+                    "id": unitID,
+                    "members": members,
                     "type": "pair",
                     "couples": True,
                     "driver": True
-                })
+                }
+                
+                if key not in seen_today:
+                    seen_today.add(key)
+                    feasibleUnits_d[d].append(unit)
     
-    # --- real driver + non-driver couple ---
+    # real driver + coupling
     for i in CdD[d]:
         for (a,b) in allCouples[d]:
             if i not in (a,b):
-                feasibleUnits_d[d].append({
-                    "id": str(i) + "_" + str(a) + "_" + str(b),
-                    "members": (i,a,b),
+                members = (i,a,b)
+                unitID = "_".join(map(str,members)) + "_p"
+                key = (tuple(sorted(members)), "pair")
+                unit = {
+                    "id": unitID,
+                    "members": members,
                     "type": "pair",
                     "couples": True,
                     "driver": True
-                })
+                }
+                
+                if key not in seen_today:
+                    seen_today.add(key)
+                    feasibleUnits_d[d].append(unit)
+
+# split drivers set now for easier future stuff
+driverUnits = {
+    d: [u["id"] for u in feasibleUnits_d[d] if u["driver"]]
+    for d in Days
+}
 
 """
 GET VISIT MINUTES AND SHARES
@@ -299,6 +348,7 @@ Sd = {}
 for d in Days:
     # the share of pair/solo minutes today
     pairShare = Vpd[d]/Vd[d]
+    # print(f"{d} share of visit minutes requiring pair: {pairShare}%")
     # there is a derivation for this i swear
     Pd[d] = int(round(pairShare * len(Cd[d]) / (1 + pairShare)))
     # bound it from below by 0 and above by max pairs possible today
@@ -533,6 +583,7 @@ precomp = {
         "D": Days,
         "Cd": Cd,
         "units_d": feasibleUnits_d,
+        "drive_d": driverUnits,
         "L": L,
         "du": du,
         "dij": D,
