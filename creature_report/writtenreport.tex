@@ -35,11 +35,7 @@
   {\paragraph{Parameters}\mbox{}\par\nobreak\vspace{-0.5\baselineskip}
    \begin{tabular}{@{}l @{\quad} p{0.85\linewidth}@{}}}
   {\end{tabular}\par\vspace{\baselineskip}}
- 
-\newenvironment{modelvars}
-  {\paragraph{Decision Variables}\mbox{}\par\nobreak\vspace{-0.5\baselineskip}
-   \begin{tabular}{@{}l}}
-  {\end{tabular}\par\vspace{\baselineskip}}
+
 
 \begin{document}
 
@@ -140,11 +136,11 @@ Consequently, the importance of home healthcare companies, i.e. companies provid
 
 Operational Research is the branch of applied mathematics dealing with the formulation and solving of decision problems. As such, it presents an area of particularly enticing growth potential for operations involving multiple, complex decisions. As discussed in a prior section, the field of home healthcare is one such domain, as it involves decisions on the routing of visits, the scheduling of visits, and the assignment of caregivers to those visits. 
 
-The first relevant problem structure from the OR canon to note is the Vehicle Routing Problem. Formally, the Vehicle Routing Problem is defined by a set of customers, each with known demand, a set of vehicles available to serve those customers, and known costs for serving each customer both individually and following from a prior customer. The objective of the Vehicle Routing Problem is to then assign each vehicle a subset of the customers and an order, i.e. routing, by which each vehicle is to serve its assigned customers such that the overall cost across all vehicles' assigned routes is minimized \cite{NELSON1985}. This problem typically involves capacitated vehicles, i.e. each vehicle is limited in the amount of demand it is able to service, while otherwise resembling an extended version of the Travelling Salesman Problem. 
+The first relevant problem structure from the OR canon to note is the Vehicle Routing Problem. Formally, the Vehicle Routing Problem is defined by a set of customers, each with known demand, a set of vehicles available to serve those customers, and known costs for serving each customer both individually and following from a prior customer. The objective of the Vehicle Routing Problem then is to assign each vehicle a subset of the customers and an order, i.e. routing, by which each vehicle is to serve its assigned customers such that the overall cost across all vehicles' assigned routes is minimized. This problem typically involves capacitated vehicles, i.e. each vehicle is limited in the amount of demand it is able to service, while otherwise resembling an extended version of the Travelling Salesman Problem \cite{NELSON1985}. Since this problem is part of the canon Operational Research literature, there exists a STANDARD FORMULATION with STANDARD ALGORITHM that does stuff in STANDARD COMPLEXITY.
 
-In particular, there exists a canon structure of the Vehicle Routing Problem with Time Windows. This structure extends the existing Vehicle Routing Problem structure to enforce time windows within which a visit must be scheduled\cite{desroisiers-solomon}. 
+In particular, there exists a canon structure of the Vehicle Routing Problem with Time Windows. This structure extends the existing Vehicle Routing Problem structure to enforce time windows within which a visit must be scheduled\cite{desroisiers-solomon}. This extension allows the same Vehicle Routing framework to extend to applications where the servies demanded by each customer node are time-sensitive, i.e. the node must be visited by a vehicle and service completed by that vehicle within a given time window. This is a canon extension with STANDARD FORMULATION with STANDARD ADDED COMPLEXITY.
 
-The next relevant problem structure to consider is the Assignment Problem.
+The next relevant problem structure to consider is the Assignment Problem. The Assignment Problem is formally defined as 
 
 A final problem structure to consider is the Synchronization Problem. 
 
@@ -173,61 +169,70 @@ The problem in this case, therefore, is to identify an optimal or near-optimal a
 Having now defined the problem, this chapter will detail the methodology considered and ultimately chosen to address the problem. Discussion will start with a review of the various approaches considered as potentially applicable to the problem, followed by an overview of the approach deemed most appropriate to the context. The rest of the chapter will then focus on the specifics of the ultimate design approach taken.
 
 \subsection{Design Considerations}
+% % % % FIX THESE TWO PARAGRAPHS % % % % 
 Company wants to service its clients to their satisfaction. Caregivers want good routing and scheduling that increases their share of working hours which are paid. Clients want good, timely visits from caregivers they know and trust. Potential objectives therefore include. The least computationally complex model would choose exactly one objective, while there exists computational trade-off between computational complexity and solutions improved across all objectives.
 
 Some visits require multiple caregivers. Synchronization problem is a thing applicable to this in certain companies' contexts. Synchronization approach yields addition of operational and computational complexity and lack of schedule/routing robustness in the event of unanticipated disruptions. Pairing caregivers for the day may lead to routings and schedulings marginally less efficient than a synchronization approach may yield, but would be less operationally complex, less operationally vulnerable, and ultimately likely less computationally complex than a synchronization approach.
+% % % % ^ ^ ^ ^ % % % % 
 
+Another important consideration must be made regarding the shift patterns of caregivers. In a synchronization-based approach, this consideration is trivial, as each caregiver is routed and scheduled independently and can therefore be assigned to visits with or without other caregivers freely within their available hours and constrained out of use without those hours. However, if an approach pairing caregivers for the day is implemented, shift patterns must be expicitly considered to avoid pairing caregivers with incompatible shift patterns and maximize the utility of each pairing (i.e. ensure pairings are active for the entirety of members' shifts). In the day-long pairing approach to considering visits with multiple caregivers, shift patterns might be considered by total enumeration of potential pairings including length three pairings where two caregivers of alternate shift patterns are paired with a full-time caregiver, assigning pairings for all days for all shift patterns, as a hybrid synchronization approach where caregivers whose partners are off can synchronize on an as-needed basis and otherwise perform single caregiver visits, MORE.
 
-
-There is also the question of considering gender preference, and when in the decision pipline that consideration should be made.
+% % % % FIX THIS TOO % % % %
+There is also the question of considering clients' gender preference. This consideration can be made in routing and scheduling, and/or it can be made a factor of pair assignments if that approach is chosen. 
 \subsection{Modelling Approach}
 
 \subsection{Formulation}
 
-\begin{modelsets}
-	$D$ & set of days to schedule caregivers\\
-	$C^d$ & set of caregivers available on day $d$\\
-	$U^d$ & set of feasible caregiving units available on day $d$\\
-	$U_p^d \subset U^d$ & set of feasible caregiving units of effective size two available on day $d$\\
-	$U_s^d \subset U^d$ & set of feasible caregiving units of effective size one available on day $d$\\
-	$U_D^d \subset U^d$ & set of feasible caregibing units available on day $d$ containing an equivalent full-time driver\\
-	$L$ & set of localities served
-\end{modelsets}
+\begin{table}[H]
+	\caption{Model Sets}
+	\begin{tabular}{ll}
+		$D$ & set of days to schedule caregivers\\
+		$C^d$ & set of caregivers available on day $d$\\
+		$U^d$ & set of feasible caregiving units available on day $d$\\
+		$U_p^d \subset U^d$ & set of feasible caregiving units of effective size two available on day $d$\\
+		$U_s^d \subset U^d$ & set of feasible caregiving units of effective size one available on day $d$\\
+		$U_D^d \subset U^d$ & set of feasible caregibing units available on day $d$ containing an equivalent full-time driver\\
+		$L$ & set of localities served
+	\end{tabular}
+\end{table}
 
-\begin{modelparams}
-	$d_{ij}$ & driving time between caregivers $i \in C^d$ and $j \in C^d$\\
-	$d_u$ & driving time required to create unit $u$\\
-	$r_{ul}$ & driving time required for unit $u$ to reach locality $l$\\
-	$F_u^d$ & total duration of pair visits on day $d$ where both active caregivers in unit $u \in U_p^d$ are familiar to the client\\
-	$f_u^d$ & total duration of pair visits on day $d$ where either active caregiver in unit $u \in U_p^d$ is familiar to the client\\
-	$s_u^d$ & total duration of solo visits on day $d$ where the active caregiver in unit $u \in U_s^d$ is familiar to the client\\
-	$V^d$ & total duration of all visits on day $d$\\
-	$V_P^d$ & total duration of all visits on day $d$ requiring two caregivers present\\
-	$V_s^d$ & total duration of all visits on day $d$ requiring one caregiver present\\
-	$p^d = \frac{V_P^d}{V^d}$ & share of total visit duration on day $d$ requiring a caregiving pair\\
-	$T^d = \tfrac{p |C_D^d|}{1 + p}$ & target number of caregiving pairs to assign on day $d$\\
-	$V_{Pl}^d$ & total visit duration in locality $l$ on day $d$ requiring a caregiving pair\\
-	$V_{sl}^d$ & total visit duration in locality $l$ on day $d$ requiring a single caregiver\\
-	$l_u$ & binary indicator whether caregiver unit $u$ is located in locality $l$\\
-	$K$ & maximum distance carers will travel for pairing\\
-\end{modelparams}
+\begin{table}[H]
+	\caption{Model Parameters}
+	\begin{tabular}{ll}
+		$d_{ij}$ & driving time between caregivers $i \in C^d$ and $j \in C^d$\\
+		$d_u$ & driving time required to create unit $u$\\
+		$r_{ul}$ & driving time required for unit $u$ to reach locality $l$\\
+		$F_u^d$ & total duration of pair visits on day $d$ where both active caregivers in unit $u \in U_p^d$ are familiar to the client\\
+		$f_u^d$ & total duration of pair visits on day $d$ where either active caregiver in unit $u \in U_p^d$ is familiar to the client\\
+		$s_u^d$ & total duration of solo visits on day $d$ where the active caregiver in unit $u \in U_s^d$ is familiar to the client\\
+		$V^d$ & total duration of all visits on day $d$\\
+		$V_P^d$ & total duration of all visits on day $d$ requiring two caregivers present\\
+		$V_s^d$ & total duration of all visits on day $d$ requiring one caregiver present\\
+		$p^d = \frac{V_P^d}{V^d}$ & share of total visit duration on day $d$ requiring a caregiving pair\\
+		$T^d = \tfrac{p |C_D^d|}{1 + p}$ & target number of caregiving pairs to assign on day $d$\\
+		$V_{Pl}^d$ & total visit duration in locality $l$ on day $d$ requiring a caregiving pair\\
+		$V_{sl}^d$ & total visit duration in locality $l$ on day $d$ requiring a single caregiver\\
+		$l_u$ & binary indicator whether caregiver unit $u$ is located in locality $l$\\
+		$K$ & maximum distance carers will travel for pairing
+	\end{tabular}
+\end{table}
 
-\begin{modelvars}
-	\multicolumn{3}{@{}l}{%
+\begin{table}[H]
+	\caption{Model Decision Variables}
+	\begin{tabular}{l}
 		$x_u^d = \begin{cases}
 			1 & \text{if caregiving unit } u \in U^d \text{ is assigned on day } d\\
 			0 & \text{else}
-		\end{cases}$%
-	} \\
-	\multicolumn{3}{@{}l}{%
-		$z_{ul}^d = 
-			\begin{cases}
-				1 & \text{if caregiving unit } u \in U_D^d \text{ is assigned to locality } l \in L \text{ on day } d\\
-				0 & \text{else}
-			\end{cases}$%
-	} \\
-	$w_{ul}^d$ \quad variable representing the linearization of the product of binary variables $z_{ul}^d x_u^d$\\
-\end{modelvars}
+		\end{cases}$ \\
+
+		$z_{ul}^d = \begin{cases}
+			1 & \text{if caregiving unit } u \in U_D^d \text{ is assigned to locality } l \in L \text{ on day } d\\
+			0 & \text{else}
+		\end{cases}$\\
+
+		$w_{ul}^d$ \quad variable representing the linearization of the product of binary variables $z_{ul}^d x_u^d$
+	\end{tabular}
+\end{table}
 
 \begin{footnotesize}
 \begin{align}
@@ -253,7 +258,7 @@ There is also the question of considering gender preference, and when in the dec
 & |C^d| - T - 2 \epsilon \leq \sum\nolimits_{u \in U_s^d} x_u^d \leq |C^d| - T + 2 \epsilon
 && \forall d \in D \label{soloTolerance}\\
 & x_u^d = 0 \label{pairDistLimit}\\
-&& \forall u \in \{\, u \in U^d \mid d_u \ge 2K \lor d_{ij} \ge K \forall (i,j) \in u \,\} \notag\\
+&& \forall u \in \{\, u \in U^d \mid \exists \(i,j\) \in u \mid d_{ij} \ge K\,\} \notag\\
 %% --- example of the "still too long" fallback pattern ---
 & 0 \leq w_{ul}^d \leq x_u^d 
 && \forall u \in U_D^d,\ l \in L,\ d \in D \label{wLin1} \\

@@ -10,9 +10,6 @@
 \contentsline {subsection}{\numberline {4.1}Design Considerations}{5}{}%
 \contentsline {subsection}{\numberline {4.2}Modelling Approach}{5}{}%
 \contentsline {subsection}{\numberline {4.3}Formulation}{5}{}%
-\contentsline {paragraph}{Sets}{5}{}%
-\contentsline {paragraph}{Parameters}{6}{}%
-\contentsline {paragraph}{Decision Variables}{6}{}%
 \contentsline {section}{\numberline {5}Results}{8}{}%
 \contentsline {subsection}{\numberline {5.1}Effect on Downstream Routing and Scheduling Process}{8}{}%
 \contentsline {section}{\numberline {6}Conclusion}{9}{}%
