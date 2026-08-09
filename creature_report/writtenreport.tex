@@ -38,7 +38,7 @@
  
 \newenvironment{modelvars}
   {\paragraph{Decision Variables}\mbox{}\par\nobreak\vspace{-0.5\baselineskip}
-   \begin{tabular}{@{}l @{\quad} p{0.85\linewidth}@{}}}
+   \begin{tabular}{@{}l}}
   {\end{tabular}\par\vspace{\baselineskip}}
 
 \begin{document}
@@ -58,7 +58,7 @@
 \includegraphics[width=180pt]{CentredLogoCMYK.jpg}
 \end{figure}
 \vspace{2em}
-\textbf{\Huge{Working Title}}\\[2em]
+\textbf{\Huge{Pairing Caregivers as a Preliminary Step in the Home Healthcare Routing and Scheduling Problem}}\\[2em]
 \textbf{\LARGE{by}}\\
 \vspace{2em}
 \textbf{\LARGE{Nolan Willoughby}}\\
@@ -68,7 +68,7 @@ MSc in Operational Research}\\
 \vspace{6.5em}
 \Large{August 2026}\\
 \vspace{3em}
-\Large{Supervised by\\Dr. Joerg Kalcsics}
+\Large{Supervised by\\Dr. Jörg Kalcsics}
 \vfill
 \end{titlepage}
 
@@ -89,7 +89,7 @@ this will come eventually
 \Large{Acknowledgments}
 \end{center}
 
-I would like to extend my sincere gratitude to my family for their continued love and support. I would also like to thank Joerg for his insight, direction, and 
+I would like to extend my sincere gratitude to my family for their continued love and support. I would also like a hearfelt thanks to Jörg for his insight, direction, and wisdom, all of which were integral to my completion of this dissertation.
 
 \clearpage
 
@@ -130,7 +130,7 @@ Section \ref{sec:background} will provide a review of relevant literature to the
 
 \section{Background}
 \label{sec:background}
-
+To better inform the work conducted, it is necessary to first understand the literature context in which it is placed. This chapter will provide such context by reviewing relevant literature on Home Healthcare as a service and industry, Operational Research and its relevant canon problem structures, and applications of Operational Research to this and other healthcare contexts. 
 \subsection{Home Healthcare}
 Home Healthcare is the process by which certain health-related services are provided to patients in their home. These services typically involve nursing care, though can also consist of prescription and other medical supply delivery as well as assistance with day-to-day activity \cite{al-hamad}. These services provided by home healthcare models are becoming increasingly essential as demographic changes yield older populations, greater geographical dispersion relative to both family and central hospital campuses, and a general preference toward aging in place. Additionally, home healthcare services can prove essential to modern healthcare systems by enabling personalized, expert care for patients with chronic illness, mobility challenges, and post-op recovery needs who may not otherwise be able to receive such quality care \cite{atta25, Mankowska2014}.
 
@@ -160,19 +160,26 @@ Due to the significant human impact of healthcare contexts, certain consideratio
 
 \section{Problem Statement}
 \label{sec:prob}
-This case involves the scheduling and routing decisions faced by a home healthcare company. The company employs approximately 50 caregivers and services approximately 150 clients. Caregivers may work either a full-time, morning, or afternoon shift pattern,  and each caregiver is available for a given subset of days in the planning window. This information is known and decided on a two week planning horizon due to minimum work thresholds set by the UK Home Office for caregivers on sponsored work visas. Caregivers may or may not have the ability to drive, with driving caregivers able to cover a larger service area than non-drivers. That said, caregivers are generally not compensated for time spent on their shift travelling, though there can be exceptions to this rule for certain, extenuating circumstances. Additionally, approximately 90\% of all caregivers identify as female, and all caregivers share functionally equivalent qualifications sufficient to perform any visit the company may have committment to perform. 
+As a first step in an engineering design process, it is important to formally define the nature and objective of this work. This case involves the scheduling and routing decisions faced by a home healthcare company. The company employs approximately 50 caregivers and services approximately 150 clients. Caregivers may work either a full-time, morning, or afternoon shift pattern,  and each caregiver is available for a given subset of days in the planning window. This information is known and decided on a two week planning horizon due to minimum work thresholds set by the UK Home Office for caregivers on sponsored work visas. Caregivers may or may not have the ability to drive, with driving caregivers able to cover a larger service area than non-drivers. That said, caregivers are generally not compensated for time spent on their shift travelling, though there can be exceptions to this rule for certain, extenuating circumstances. Additionally, approximately 90\% of all caregivers identify as female, and all caregivers share functionally equivalent qualifications sufficient to perform any visit the company may have committment to perform. 
 
 Clients typically require between three and five visits daily, with most visits lasting between 30 and 60 minutes. Each of these visits must occur within a given time window, and each visit requires either one or two caregivers present. Clients typically prefer visits to be performed by caregivers already known to the client, and clients can specify a preference on the gender of the caregiver(s) assigned to perform their visit(s). Clients and their caregivers are spread across the company's service area, which covers three municipalities. The distribution of clients and caregivers across this area is not uniform, and this disparity must be taken into account when routing and scheduling visits. On any given day, the total duration of all visit minutes requiring two caregivers present represents about 40\% of the total duration of all visit minutes which must be served on that day. 
 
-The problem in this case, therefore, is to identify an optimal or near-optimal allocation or scheduling of caregivers to the set of visits the company is committed to service and the order or routing in which the caregivers ought to perform their assigned visits. Attention must be paid to the shift pattern that assigned caregivers work, whether assigned caregivers are able to drive or are paired with another caregiver able to drive, and whether caregivers match the gender preferences of the client. Because all caregivers functionally share the same qualifications, there is no need in this case to consider visits that can only be performed by a subset of caregivers, with the exception of cases with an expressed gender preference.  
+The problem in this case, therefore, is to identify an optimal or near-optimal allocation or scheduling of caregivers to the set of visits the company is committed to service and the order or routing in which the caregivers ought to perform their assigned visits. Attention must be paid to the shift pattern that assigned caregivers work, whether assigned caregivers are able to drive or are paired with another caregiver able to drive, and whether caregivers match the gender preferences of the client. Because all caregivers functionally share the same qualifications, there is no need in this case to consider visits that can only be performed by a subset of caregivers, with the exception of cases with an expressed gender preference. This is in contrast to most formulations of the Home Healthcare Routing and Scheduling Problem, which constrain a caregiver's scheduling according to whether that caregiver has the requisite qualification(s) to perform the tasks of each visit. With the problem formally defined, it is then possible to lay forth a modelling approach meant to solve the problem as defined.
 
 \clearpage
 
 \section{Methodology}
 \label{sec:meth}
+Having now defined the problem, this chapter will detail the methodology considered and ultimately chosen to address the problem. Discussion will start with a review of the various approaches considered as potentially applicable to the problem, followed by an overview of the approach deemed most appropriate to the context. The rest of the chapter will then focus on the specifics of the ultimate design approach taken.
 
 \subsection{Design Considerations}
+Company wants to service its clients to their satisfaction. Caregivers want good routing and scheduling that increases their share of working hours which are paid. Clients want good, timely visits from caregivers they know and trust. Potential objectives therefore include. The least computationally complex model would choose exactly one objective, while there exists computational trade-off between computational complexity and solutions improved across all objectives.
 
+Some visits require multiple caregivers. Synchronization problem is a thing applicable to this in certain companies' contexts. Synchronization approach yields addition of operational and computational complexity and lack of schedule/routing robustness in the event of unanticipated disruptions. Pairing caregivers for the day may lead to routings and schedulings marginally less efficient than a synchronization approach may yield, but would be less operationally complex, less operationally vulnerable, and ultimately likely less computationally complex than a synchronization approach.
+
+
+
+There is also the question of considering gender preference, and when in the decision pipline that consideration should be made.
 \subsection{Modelling Approach}
 
 \subsection{Formulation}
@@ -206,23 +213,21 @@ The problem in this case, therefore, is to identify an optimal or near-optimal a
 \end{modelparams}
 
 \begin{modelvars}
-	$w_{ul}^d$ & variable representing the linearization of the product of binary variables $z_{ul}^d x_u^d$\\
+	\multicolumn{3}{@{}l}{%
+		$x_u^d = \begin{cases}
+			1 & \text{if caregiving unit } u \in U^d \text{ is assigned on day } d\\
+			0 & \text{else}
+		\end{cases}$%
+	} \\
+	\multicolumn{3}{@{}l}{%
+		$z_{ul}^d = 
+			\begin{cases}
+				1 & \text{if caregiving unit } u \in U_D^d \text{ is assigned to locality } l \in L \text{ on day } d\\
+				0 & \text{else}
+			\end{cases}$%
+	} \\
+	$w_{ul}^d$ \quad variable representing the linearization of the product of binary variables $z_{ul}^d x_u^d$\\
 \end{modelvars}
-\[
-		x_u^d = 
-			\begin{cases}
-				1 & \text{if caregiving unit } u \in U^d \text{is assigned on day } d\\
-				0 & \text{else}
-			\end{cases}
-\]
-
-\[
-		z_{ul}^d = 
-			\begin{cases}
-				1 & \text{if caregiving unit } u \in U_D^d \text{assigned to locality } l \in L \text{on day } d\\
-				0 & \text{else}
-			\end{cases}
-\]
 
 \begin{footnotesize}
 \begin{align}
@@ -247,30 +252,22 @@ The problem in this case, therefore, is to identify an optimal or near-optimal a
 && \forall d \in D \label{pairTolerance}\\
 & |C^d| - T - 2 \epsilon \leq \sum\nolimits_{u \in U_s^d} x_u^d \leq |C^d| - T + 2 \epsilon
 && \forall d \in D \label{soloTolerance}\\
-& x_u^d = 0
-&& \forall u \in \{\, u \in U^d \mid d_u \ge 2K \lor d_{ij} \ge K \forall (i,j) \in u \,\} \label{pairDistLimit}\\
+& x_u^d = 0 \label{pairDistLimit}\\
+&& \forall u \in \{\, u \in U^d \mid d_u \ge 2K \lor d_{ij} \ge K \forall (i,j) \in u \,\} \notag\\
 %% --- example of the "still too long" fallback pattern ---
-& 0 \leq w_{ijl}^d \leq x_{ij}^d
-\label{wLin1} \\
-&& \forall i \in C_D^d,\ j \in C^d \setminus \{i\},\ l \in L,\ d \in D \notag \\
+& 0 \leq w_{ul}^d \leq x_u^d 
+&& \forall u \in U_D^d,\ l \in L,\ d \in D \label{wLin1} \\
 %% --- apply the same two-line pattern below to wLin3, wLin4,
 %%     vLin1, vLin3, vLin4 if they still overflow at footnotesize ---
-& w_{ijl}^d \leq z_{jl}^d
-&& \forall i \in C_D^d,\ j \in C^d \setminus \{i\},\ l \in L,\ d \in D \label{wLin3} \\
-& w_{ijl}^d \geq z_{jl}^d + x_{ij}^d - 1
-&& \forall i \in C_D^d,\ j \in C^d \setminus \{i\},\ l \in L,\ d \in D \label{wLin4} \\
-& 0 \leq v_{il}^d \leq y_{i}^d
-&& \forall i \in C^d,\ l \in L,\ d \in D \label{vLin1} \\
-& v_{il}^d \leq z_{il}^d
-&& \forall i \in C^d,\ l \in L,\ d \in D \label{vLin3} \\
-& v_{il}^d \geq z_{jl}^d + y_{i}^d - 1
-&& \forall i \in C^d,\ l \in L,\ d \in D \label{vLin4} \\
-& x_{ij}^d \in \{0,1\}
-&& \forall i \in C_D^d,\ j \in C^d \setminus \{i\},\ d \in D \label{domX} \\
-& y_i^d \in \{0,1\}
-&& \forall i \in C^d,\ d \in D \label{domY} \\
-& z_{il}^d \in \{0,1\}
-&& \forall i \in C^d,\ l \in L,\ d \in D \label{domZ}
+& w_{ul}^d \leq z_{ul}^d
+&& \forall u \in U_D^d,\ l \in L,\ d \in D  \label{wLin2} \\
+& w_{ul}^d \geq z_{ul}^d + x_u^d - 1
+&& \forall u \in U_D^d,\ l \in L,\ d \in D \label{wLin4} \\
+& x_u^d \in \{0,1\}
+&& \forall u \in U^d,\ d \in D \label{domX} \\
+& z_{ul}^d \in \{0,1\}
+&& \forall u \in U^d,\ l \in L,\ d \in D \label{domZ} \\
+& w_{ul}^d \in \mathbb{R}
 \end{align}
 \end{footnotesize}
 
@@ -279,7 +276,7 @@ The problem in this case, therefore, is to identify an optimal or near-optimal a
 
 \section{Results}
 \label{sec:res}
-
+The model was implemented with Gurobi's optimization solver using its Python library. 
 \subsection{Effect on Downstream Routing and Scheduling Process}
 
 \clearpage
@@ -297,14 +294,7 @@ lol we've got a long way to go before i start doing this
 \section*{Appendices}
 \addcontentsline{toc}{section}{Appendices}
 
-\section{An Appendix}
+\section{Appendix A}
 \label{app:one}
-
-\clearpage
-
-\section{Another Appendix}
-\label{app:two}
-
-Some other stuff.
 
 \end{document}

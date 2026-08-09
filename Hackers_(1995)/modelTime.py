@@ -10,20 +10,52 @@ import gurobipy as grb
 import pickle
 import pandas as pd
 from pathlib import Path
-import math
-
+from itertools import combinations
+from datetime import datetime
 """
 HELPER FUNCTIONS
 """
 def normalize(df):
     df = df.sort_index(axis=1)
-    return df.sort_values(
-        by=list(df.columns), kind="mergesort"
-                ).reset_index(drop=True)
+    df = df.astype(str)
+    df = df.sort_values(by=list(df.columns), kind="mergesort").reset_index(
+        drop=True)
+    return tuple(tuple(str(x) for x in row) for row in df.to_numpy())
 
-def get_sol(D, units_d, L, xud, zuld, lu):
+def split_unit(u, allCouples_d):
+    members = list(u["members"])
+    
+    # no couple case
+    if not u["couples"]:
+        return {
+            "couple": None,
+            "single": members if len(members) == 1 else None,
+            "pair": members if len(members) == 2 else None
+        }
+
+    # --- find which two form the couple ---
+    couple_set = {tuple(sorted(c)) for c in allCouples_d}
+    
+    for a, b in combinations(members, 2):
+        if tuple(sorted((a, b))) in couple_set:
+            remaining = [x for x in members if x not in (a, b)]
+            return {
+                "couple": (a, b),
+                "single": remaining[0] if remaining else None
+            }
+
+    # fallback (should not happen)
+    return {
+        "couple": None,
+        "single": members
+    }
+
+def get_sol(D, units_d, L, xud, zuld, lu, allCouples_d):
     rows = []
     for d in D:
+        
+        todaysCouples = {tuple(sorted(c)) for c in allCouples_d[d]}
+        
         # paired caregivers
         for u in (u for u in units_d[d] if u["type"] == "pair"):
             if xud[u["id"],d].X > 0.5:
@@ -36,11 +68,28 @@ def get_sol(D, units_d, L, xud, zuld, lu):
                 if lAssignment == None:
                     lAssignment = next(l for l in L if lu[(u["id"],l)] == 1)
                 
-                rows.append({
-                    "Day": d,
-                    "Unit ID": u["id"],
-                    "Locale Assignment": lAssignment
-                    })
+                if not u["couples"]:
+                    rows.append({
+                        "Day": d,
+                        "Unit Type": u["type"],
+                        "(eq.) Caregiver ID 1": u["members"][0],
+                        "(eq.) Caregiver ID 2": u["members"][1],
+                        "Locality Assignment": lAssignment
+                        })
+                
+                if u["couples"]:
+                    for a, b in combinations(u["members"], 2):
+                        if tuple(sorted((a,b))) in todaysCouples:
+                            remaining = [x for x in u["members"] if x not in (a,b)]
+                            parts = u["id"].split("_")
+                            if parts[0] == remaining:
+                                rows.append({
+                                    "Day": d,
+                                    "Unit Type": u["type"],
+                                    "(eq.) Caregiver ID 1": remaining,
+                                    "(eq.) Caregiver ID 2": (a, b),
+                                    "Locality Assignment": lAssignment
+                                    })
                     
         # solo caregivers
         for u in (u for u in units_d[d] if u["type"] == "solo"):
@@ -57,14 +106,18 @@ def get_sol(D, units_d, L, xud, zuld, lu):
                     
                     rows.append({
                         "Day": d,
-                        "Unit ID": u["id"],
+                        "Unit Type": u["type"],
+                        "(eq.) Caregiver ID 1": u["members"],
+                        "(eq.) Caregiver ID 2": None,
                         "Locale Assignment": lAssignment
                         })
                 else:
                     lAssignment = next(l for l in L if lu[(u["id"],l)] == 1)
                     rows.append({
                         "Day": d,
-                        "Unit ID": u["id"],
+                        "Unit Type": u["type"],
+                        "(eq.) Caregiver ID 1": u["members"],
+                        "(eq.) Caregiver ID 2": None,
                         "Locale Assignment": lAssignment
                         })
     # save results
@@ -74,6 +127,7 @@ def get_sol(D, units_d, L, xud, zuld, lu):
 """
 INITIALIZATIONS
 """
+run_start = datetime.now()
 # figure out the folder we're currently in
 currDir = Path(__file__).resolve().parent
 currParent = currDir.parent
@@ -90,6 +144,7 @@ D = data["D"]
 Cd = data["Cd"]
 units_d = data["units_d"]
 driveUnits_d = data["drive_d"]
+allCouples_d = data["allCouples"]
 L = data["L"]
 du = data["du"]
 dij = data["dij"]
@@ -101,14 +156,13 @@ Vpd = data["Vpd"]
 Vsd = data["Vsd"]
 Vlpd = data["Vlpd"]
 Vlsd = data["Vlsd"]
-Pd = data["Pd"]
-Sd = data["Sd"]
+pairShare = data["pairShare"]
 lu = data["lu"]
 K = data["K"]
 
 # define the tolerances on geospatial solo/pair distributions
-epsi = 0 # tolerance on solo caregiving units
-delta = 0 # tolerance on pair caregiving units
+epsi = 2 # tolerance on solo caregiving units
+delta = 1 # tolerance on pair caregiving units
 
 # Initialize the model
 m = grb.Model("Caregiver_Assignments")
@@ -166,19 +220,17 @@ for d in D:
             for j in members:
                 if dij[i].loc[j] > K:        
                     xud[u["id"],d].ub = 0
-                    
-# do not assign u if sum of links is greater than 2K apart
-for d in D:
-    for u in units_d[d]:
-        if du[u["id"]] > 2 * K:
-            xud[u["id"],d].ub = 0
+                
                 
 # upper bound the solo units and their geospatial distribution
 m.addConstrs(grb.quicksum(lu[(u["id"],l)] * xud[u["id"],d] for u in units_d[d] 
                           if (u["type"] == "solo" and u["driver"] == False)) +
              grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
                           if (u["type"] == "solo" and u["driver"])) <= 
-             math.ceil(Vlsd.get((l,d), 0) / Vsd[d] * (Sd[d] + epsi))
+             Vlsd.get((l,d), 0) / Vsd[d] * ((1 - pairShare[d]) 
+                                            * grb.quicksum(xud[u["id"], d] 
+                                                           for u in units_d[d]))
+                          + epsi
              for l in L for d in D)
 
 # lower bound the solo units and their geospatial distribution
@@ -186,38 +238,53 @@ m.addConstrs(grb.quicksum(lu[(u["id"],l)] * xud[u["id"],d] for u in units_d[d]
                           if (u["type"] == "solo" and u["driver"] == False)) +
              grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
                           if (u["type"] == "solo" and u["driver"])) >= 
-             math.floor(Vlsd.get((l,d), 0) / Vsd[d] * (Sd[d] - epsi))
+             Vlsd.get((l,d), 0) / Vsd[d] * ((1 - pairShare[d]) 
+                                            * grb.quicksum(xud[u["id"], d] 
+                                                           for u in units_d[d]))
+                          - epsi
              for l in L for d in D)
 
 # upper bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
                              if u["type"] == "pair") 
-                <= math.ceil(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
+                <= Vlpd.get((l,d), 0) / Vpd[d] * (pairShare[d] 
+                                                  * grb.quicksum(xud[u["id"], d] 
+                                                            for u in units_d[d]))
+                             + delta
             for l in L for d in D)
 
 # lower bound the pair units and their geospatial distribution
 m.addConstrs(grb.quicksum(wuld[u["id"],l,d] for u in units_d[d]
                              if u["type"] == "pair")
-                >= math.floor(Vlpd.get((l,d), 0) / Vpd[d] * (Pd[d] + delta))
+                >= Vlpd.get((l,d), 0) / Vpd[d] * (pairShare[d] 
+                                                  * grb.quicksum(xud[u["id"], d] 
+                                                            for u in units_d[d]))
+                             - delta
             for l in L for d in D)
 
 # get total pairs within tolerance
 m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
                           if u["type"] == "pair")
-             <= Pd[d] + delta for d in D)
+             <= pairShare[d] * grb.quicksum(xud[u["id"], d] for u in units_d[d])
+             + delta for d in D)
 
 m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
                           if u["type"] == "pair")
-             >= Pd[d] - delta for d in D)
+             >= pairShare[d] * grb.quicksum(xud[u["id"], d] for u in units_d[d])
+             - delta for d in D)
 
 # get total solos within tolerance
 m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
                           if u["type"] == "solo")
-                <= Sd[d] + epsi for d in D)
+                <= (1 - pairShare[d]) * grb.quicksum(xud[u["id"], d] 
+                                                     for u in units_d[d])
+                + epsi for d in D)
 
 m.addConstrs(grb.quicksum(xud[u["id"],d] for u in units_d[d]
                           if u["type"] == "solo")
-             >= Sd[d] - epsi for d in D)
+             >= (1 - pairShare[d]) * grb.quicksum(xud[u["id"], d] 
+                                                      for u in units_d[d])
+             - epsi for d in D)
 
 # make wuld do what i want it to
 m.addConstrs(wuld[u,l,d] <= xud[u,d] for d in D 
@@ -239,7 +306,7 @@ maxTravel = carerTravelCeiling.getValue()
 
 allResults = []
 # store objective 1 results
-maxTravelSol = get_sol(D, units_d, L, xud, zuld, lu)
+maxTravelSol = get_sol(D, units_d, L, xud, zuld, lu, allCouples_d)
 allResults.append(maxTravelSol)
 
 print(f"Maximum Observed Travel Ceiling: {maxTravel}")
@@ -255,7 +322,7 @@ m.optimize()
 minTravel = m.ObjVal
 
 # store objective 2 results
-minTravelSol = get_sol(D, units_d, L, xud, zuld, lu)
+minTravelSol = get_sol(D, units_d, L, xud, zuld, lu, allCouples_d)
 allResults.append(minTravelSol)
 
 print(f"Minimum Observed Travel Ceiling: {minTravel}")
@@ -274,21 +341,23 @@ for lamb in [0.25, 0.5, 0.75]:
     print(f"Observed Travel: {carerTravelCeiling.getValue()}")
     
     # save results
-    currSol = get_sol(D, units_d, L, xud, zuld, lu)
+    currSol = get_sol(D, units_d, L, xud, zuld, lu, allCouples_d)
     allResults.append(currSol)
     
 """
 COMPARE RESULTS AND EXPORT WHILE IGNORING DUPLICATES
 """
 unique_results = []
-seen = []
+seen = set()
 for df in allResults:
     norm=normalize(df)
-    if not any(norm.equals(existing) for existing in seen):
-        seen.append(norm)
+    if norm not in seen:
+        seen.add(norm)
         unique_results.append(df)
 
 
 for i, df in enumerate(unique_results):
     unique_results[i].to_csv(f"candidate_pairings_{i+1}.csv", index=False)
     
+run_end = datetime.now()
+print(f"Total Optimisation Runtime: {run_end - run_start}")

@@ -5,10 +5,12 @@ from collections import defaultdict
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import squareform
 import pickle
+from datetime import datetime
 
 """
 HELPERS AND FILES
 """
+run_start = datetime.now()
 
 # figure out the folder we're currently in
 currDir = Path(__file__).resolve().parent
@@ -343,18 +345,11 @@ Vpd = pair_visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
 Vsd = single_visits_df.groupby("Visit Date")["Visit Duration"].sum().to_dict()
 
 # daily pair/solo share initialization
-Pd = {}
-Sd = {}
+pairShare = {}
 for d in Days:
     # the share of pair/solo minutes today
-    pairShare = Vpd[d]/Vd[d]
+    pairShare[d] = Vpd[d]/Vd[d]
     # print(f"{d} share of visit minutes requiring pair: {pairShare}%")
-    # there is a derivation for this i swear
-    Pd[d] = int(round(pairShare * len(Cd[d]) / (1 + pairShare)))
-    # bound it from below by 0 and above by max pairs possible today
-    Pd[d] = max(0, min(Pd[d], len(Cd[d]) // 2))
-    # get target solo assignments from target pair assignments
-    Sd[d] = len(Cd[d]) - 2*Pd[d]
 
 # default max travel for pair assignment (temporary?)
 K = 40
@@ -516,7 +511,7 @@ L = [int(x) for x in set(clientLocalities)]
 # and intra-unit distances
 rul = {}
 lu = {}
-du = {}
+du = defaultdict(float)
 
 for d in Days:
     for u in feasibleUnits_d[d]:
@@ -542,9 +537,9 @@ for d in Days:
                     max(D.loc[a, n] for n in members_in_l)
                     for a in members
                 )
-                
-        du[u_id] = sum(D.loc[i,j] for i in members for j in members)
-
+        for i in range(len(members)):
+            for j in range(i + 1, len(members)):
+                du[u_id] += D.loc[members[i], members[j]]
 
 # finally break down visit minutes by locality and pair/single status        
 pair_visits_df["locality"] = pair_visits_df["client_id"].map(localityMap)
@@ -584,6 +579,8 @@ precomp = {
         "Cd": Cd,
         "units_d": feasibleUnits_d,
         "drive_d": driverUnits,
+        "allCouples": allCouples,
+        "driveCouples": driveCouples,
         "L": L,
         "du": du,
         "dij": D,
@@ -595,11 +592,13 @@ precomp = {
         "Vsd": Vsd,
         "Vlpd": Vpld,
         "Vlsd": Vsld,
-        "Pd": Pd,
-        "Sd": Sd,
+        "pairShare": pairShare,
         "lu": lu,
         "K": K
 }
 
 with open(currParent.parent / "Home HealthCare Data" / "inputs.pkl", "wb") as f:
     pickle.dump(precomp, f)
+    
+run_end = datetime.now()
+print(f"Total Preprocessing Runtime: {run_end - run_start}")
