@@ -306,7 +306,9 @@ for d in Days:
             "members": members,
             "type": "solo",
             "couples": False,
-            "driver": c in CdD[d]
+            "couple": None,
+            "driver": c in CdD[d],
+            "dc": False
         }
         if key not in seen_today:
             seen_today.add(key)
@@ -322,7 +324,9 @@ for d in Days:
             "members": members,
             "type": "solo",
             "couples": True,
-            "driver": (a,b) in driveCouples[d]
+            "couple": (a,b),
+            "driver": (a,b) in driveCouples[d],
+            "dc": (a,b) in driveCouples[d]
         }
         if key not in seen_today:
             seen_today.add(key)
@@ -345,6 +349,8 @@ for d in Days:
                     "members": members,
                     "type": "pair",
                     "couples": False,
+                    "couple": None,
+                    "dc": False,
                     "driver": True
                     }
                 
@@ -366,6 +372,8 @@ for d in Days:
                     "members": members,
                     "type": "pair",
                     "couples": True,
+                    "couple": (a,b),
+                    "dc": True,
                     "driver": True
                 }
                 
@@ -386,6 +394,8 @@ for d in Days:
                     "members": members,
                     "type": "pair",
                     "couples": True,
+                    "couple": (a,b),
+                    "dc": False,
                     "driver": True
                 }
                 

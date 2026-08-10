@@ -11,6 +11,7 @@
 \usepackage{tabularx}
 \usepackage{makecell}
 \usepackage{float}
+\usepackage{hyperref}
 
 \geometry{a4paper,left=2cm,right=2.0cm, top=2cm, bottom=2.0cm}
 
@@ -76,8 +77,7 @@ MSc in Operational Research}\\
 \begin{center}
 \Large{Abstract}
 \end{center}
-
-this will come eventually
+Home Healthcare is the process by which certain health-related services are provided to patients in their home, and is a service that is becoming increasingly essential due to several demographic and cultural shifts. Due to the confluence of the ever moreso critical nature of the work and the logistical complexity of performing that work, home healthcare as a domain contains great potential for the use operational research techniques. The Home Healthcare Routing and Scheduling Problem is a problem in operational research combining aspects of several canonical problems in the operational research literature with the aim of optimizing the assignment of caregivers to visits (scheduling) and the sequencing of each caregivers' visits (routing). As certain home healthcare visits require the presence of multiple caregivers, this work focuses on introducing a preliminary step pairing a subset of availble caregivers to simplify downstream routing and scheduling in the context of a particular home healthcare provider. A multiobjective Mixed-Integer Linear Program is formulated with considerations for the geographical distribution of caregiver assignments and the shift pattern of caregivers. This model is then implemented in Python using Gurobi's optimization solver, and feasible caregiver assignments are derived. 
 
 \clearpage
 
@@ -85,7 +85,7 @@ this will come eventually
 \Large{Acknowledgments}
 \end{center}
 
-I would like to extend my sincere gratitude to my family for their continued love and support. I would also like a hearfelt thanks to Jörg for his insight, direction, and wisdom, all of which were integral to my completion of this dissertation.
+Thank you family. Thank you Jörg.
 
 \clearpage
 
@@ -121,6 +121,12 @@ I attest that I am the sole author of this thesis and that all the content withi
 
 \section{Introduction}
 \label{sec.intro}
+\textbf{To-Do:}
+\begin{itemize}
+	\item Context of Home Healthcare
+	\item (Short) review of HHRSP
+	\item (Short) synthesis of Problem Statement and Modelling Approach
+\end{itemize}
 Section \ref{sec:background} will provide a review of relevant literature to the project in the interest of contextualizing the general nature of the work being done. Section \ref{sec:prob} will formally define the problem being addressed by this work and the specific context of one home healthcare company. Section \ref{sec:meth} will cover all approaches considered as potential means of addressing the problem, the specific approach chosen, and the way in which that approach was implemented, while Section \ref{sec:res} will provide detailed computational results of the methodology as implemented. Section \ref{sec:conc} will conclude by briefly reviewing the accomplishments detailed throughout, detailing limitations of the work, and noting recommendations for future development of the work.
 \clearpage
 
@@ -136,21 +142,47 @@ Consequently, the importance of home healthcare companies, i.e. companies provid
 
 Operational Research is the branch of applied mathematics dealing with the formulation and solving of decision problems. As such, it presents an area of particularly enticing growth potential for operations involving multiple, complex decisions. As discussed in a prior section, the field of home healthcare is one such domain, as it involves decisions on the routing of visits, the scheduling of visits, and the assignment of caregivers to those visits. 
 
-The first relevant problem structure from the OR canon to note is the Vehicle Routing Problem. Formally, the Vehicle Routing Problem is defined by a set of customers, each with known demand, a set of vehicles available to serve those customers, and known costs for serving each customer both individually and following from a prior customer. The objective of the Vehicle Routing Problem then is to assign each vehicle a subset of the customers and an order, i.e. routing, by which each vehicle is to serve its assigned customers such that the overall cost across all vehicles' assigned routes is minimized. This problem typically involves capacitated vehicles, i.e. each vehicle is limited in the amount of demand it is able to service, while otherwise resembling an extended version of the Travelling Salesman Problem \cite{NELSON1985}. Since this problem is part of the canon Operational Research literature, there exists a STANDARD FORMULATION with STANDARD ALGORITHM that does stuff in STANDARD COMPLEXITY.
+The first relevant problem structure from the OR canon to note is the Vehicle Routing Problem. Formally, the Vehicle Routing Problem is defined by a set of customers, each with known demand, a set of vehicles available to serve those customers, and known costs for serving each customer both individually and following from a prior customer. The objective of the Vehicle Routing Problem then is to assign each vehicle a subset of the customers and an order, i.e. routing, by which each vehicle is to serve its assigned customers such that the overall cost across all vehicles' assigned routes is minimized. This problem typically involves capacitated vehicles, i.e. each vehicle is limited in the amount of demand it is able to service, while otherwise resembling an extended version of the Travelling Salesman Problem \cite{NELSON1985}.
 
-In particular, there exists a canon structure of the Vehicle Routing Problem with Time Windows. This structure extends the existing Vehicle Routing Problem structure to enforce time windows within which a visit must be scheduled\cite{desroisiers-solomon}. This extension allows the same Vehicle Routing framework to extend to applications where the servies demanded by each customer node are time-sensitive, i.e. the node must be visited by a vehicle and service completed by that vehicle within a given time window. This is a canon extension with STANDARD FORMULATION with STANDARD ADDED COMPLEXITY.
+In particular, there exists a canon structure of the Vehicle Routing Problem with Time Windows. This structure extends the existing Vehicle Routing Problem structure to enforce time windows within which a visit must be scheduled\cite{desroisiers-solomon}. This extension allows the same Vehicle Routing framework to extend to applications where the servies demanded by each customer node are time-sensitive, i.e. the node must be visited by a vehicle and service completed by that vehicle within a given time window. This is a canon extension with STANDARD FORMULATION (may or may not include) with STANDARD ADDED COMPLEXITY when compared to the generic, time-insensitive Vehicle Routing Problem.
 
-The next relevant problem structure to consider is the Assignment Problem. The Assignment Problem is formally defined as 
+The next relevant problem structure to consider is the Assignment Problem. 
 
 A final problem structure to consider is the Synchronization Problem. 
 
+\textbf{To-do}
+\begin{itemize}
+	\item Discuss canon formulation of VRP
+	\item Discuss performance of solving VRP
+	\item Compare/contrast formulation and performance of VRP and VRPwTW
+	\item Discuss definition, formulation, and performance of Assignment Problem
+	\item Discuss definition, formulation, and performance of Synchronization Problem
+\end{itemize}
+
 \subsection{Application of OR to Healthcare Contexts}
 
+Due to the significant human impact of healthcare contexts, certain considerations ought to be made to ensure positive, equitable outcomes when applying OR to these contexts. 
+
+\textbf{To-do}
+\begin{itemize}
+	\item Synthesize meta-analysis or literature/systematic review
+	\item General applications of OR to other Healthcare contexts
+	\subitem Operating Room (Theater) Scheduling
+	\subitem Emergency Services Dispatch
+\end{itemize}
 \subsubsection{The Home Healthcare Routing and Scheduling Problem}
+\textbf{To-do}
+\begin{itemize}
+	\item Formally define HHRSP
+	\item Discuss current state of HHRSP literature
+\end{itemize}
 
 \subsubsection{Special Considerations}
-
-Due to the significant human impact of healthcare contexts, certain considerations ought to be made to ensure positive, equitable outcomes when applying OR to these contexts. 
+\textbf{To-do}
+\begin{itemize}
+	\item Robustness of formulations and solutions
+	\item Social/Fairness Impacts?
+\end{itemize}
 
 \clearpage
 
@@ -169,6 +201,11 @@ The problem in this case, therefore, is to identify an optimal or near-optimal a
 Having now defined the problem, this chapter will detail the methodology considered and ultimately chosen to address the problem. Discussion will start with a review of the various approaches considered as potentially applicable to the problem, followed by an overview of the approach deemed most appropriate to the context. The rest of the chapter will then focus on the specifics of the ultimate design approach taken.
 
 \subsection{Design Considerations}
+\textbf{To-Do:}
+\begin{itemize}
+	\item Rewrite Paragraphs 1-2, 5-6
+\end{itemize}
+
 % % % % FIX THESE TWO PARAGRAPHS % % % % 
 Company wants to service its clients to their satisfaction. Caregivers want good routing and scheduling that increases their share of working hours which are paid. Clients want good, timely visits from caregivers they know and trust. Potential objectives therefore include. The least computationally complex model would choose exactly one objective, while there exists computational trade-off between computational complexity and solutions improved across all objectives.
 
@@ -177,48 +214,67 @@ Some visits require multiple caregivers. Synchronization problem is a thing appl
 
 Another important consideration must be made regarding the shift patterns of caregivers. In a synchronization-based approach, this consideration is trivial, as each caregiver is routed and scheduled independently and can therefore be assigned to visits with or without other caregivers freely within their available hours and constrained out of use without those hours. However, if an approach pairing caregivers for the day is implemented, shift patterns must be expicitly considered to avoid pairing caregivers with incompatible shift patterns and maximize the utility of each pairing (i.e. ensure pairings are active for the entirety of members' shifts). In the day-long pairing approach to considering visits with multiple caregivers, shift patterns might be considered by total enumeration of potential pairings including length three pairings where two caregivers of alternate shift patterns are paired with a full-time caregiver, assigning pairings for all days for all shift patterns, as a hybrid synchronization approach where caregivers whose partners are off can synchronize on an as-needed basis and otherwise perform single caregiver visits, MORE.
 
+A further consdieration for the daily assignment approach is the geospatial distribution of assignments. The simplest approach both with regard to ease of formulation and computational complexity would be to not consider this distribution at all and make location-blind assignments. Since caregiver assignments are made as a preliminary to routing and scheduling, making assignments without considering the locations of caregivers and clients may result in inefficient routings due to caregiver and/or pairing locations being located far from the clients those caregivers and/or pairings are meant to serve. One approach to consider geospatial distributions would be to group clients into neighborhoods or localities and ensure that each locality is assigned sufficient caregiving units to perform the visits in that locality. This would require the model to make additional decisions beyond just which caregivers to pair and which to assign as individuals; the model would also have to assign each of these units to a locality while considering the origin of each unit and the travel required for each unit to reach each other locality, thus increasing computational complexity. If the visits requiring a single caregiver are spread with a roughly similar geographic distribution as those requiring two caregivers, it may be appropriate to simply consider that the number of units assigend to each locality is sufficient regardless of unit size, while disproportionate distributions of these two visit types would require explicit, separate consideration of the spread of pair unit locality assignments and solo unit locality assignments. 
+
 % % % % FIX THIS TOO % % % %
-There is also the question of considering clients' gender preference. This consideration can be made in routing and scheduling, and/or it can be made a factor of pair assignments if that approach is chosen. 
+An additional consideration is the question of considering clients' gender preference. This consideration can be made in routing and scheduling, and/or it can be made a factor of pair assignments if that approach is chosen. 
+
+% % % % AND THIS % % % %
+Lastly, the complexity and scope of the model must be considered. The requirements of how frequently it must be run and the planning horizon it must consider must be balanced against the technical expertise and compute budget of the ultimate user.
 \subsection{Modelling Approach}
+Given these design considerations, the following modelling approach is put forward. The scope of this work will be to assign caregivers to paired or solo caregiving units on a daily basis. This follows from the company's realatively large share of visits requiring two caregivers, allowing for day-long caregiver assignments of this manner to be sufficiently efficient. This will be accomplished by the formulation of a Mixed-Integer Linear Program similar to the standard Assignment Problem formulation. This Mixed-Integer Linear Program will serve as a preliminary to a downstream routing and scheduling heuristic out of the scope of this work. As there are several potential objectives and the current downstream heuristic can be run in relatively short runtimes, a constraint-based multi-objective approach will be implemented.
 
+Following this overall approach to the problem in scope, several considerations must explicitly be made. Because of the relatively low share of caregivers on part-time shift patterns, feasible units will be totally enumerated as a pre-processing step, and the model will then optimize the assignment of each feasible unit subject to constraints. The model will consider geospatial distribution of assignments through the previously described locality technique with explicit consideration of the separate distributions of visits requiring pair units and visits requiring solo units. The consideration of geospatial distribution at all follows from the time-sensitive nature of home healthcare and from the fact that caregivers in this system are not compensated for time spent travelling, making time lost in transit particularly costly for all parties involved. The separate consideration of pair visits from solo visits follows from the fact that both informal discussion and formal analysis shows that these are disparately distributed geographically. Due to the conjunction of a high female caregiver population and all clients' stated gender preferences being either none or female, no consideration for the gender of caregivers will be made at this preliminary step. Instead, this will be left to be considered on a visit by visit basis by the routing and scheduling heuristic.
+
+Finally, the tool must meet the needs of the company with regard to its broader routing and scheduling process(es). Namely, this work is meant as a proof of concept; therefore the model may be implemented at this stage in any programming language and with any optimization solver. That said, the tool should meet the general planning needs of the existing routing and scheduling process, and this means that it must be able to make assignments for the company's existing two week planning horizon. Additionally, it must be able to generate candidate solutions for this horizon in a runtime measured on the scale of seconds. 
 \subsection{Formulation}
-
+Given this guiding modelling approach, it is possible to explicitly define the way in which this Mixed-Integer Linear Program will be formulated. The first step in doing so will be to formally define the sets, parameters, and decision variables and describe the relevant processes by which the sets and parameters are derived from the provided data. Then, the full formulation of the Mixed-Integer Linear Program will be put forth and explained.
+\subsubsection{Sets, Parameters, and Decision Variables}
+The full set of sets used to define the model are found in Table \ref{tab:settab}.
 \begin{table}[H]
 	\caption{Model Sets}
-	\begin{tabular}{ll}
+	\label{tab:settab}
+	\begin{tabularx}{\textwidth}{lX}
 		$D$ & set of days to schedule caregivers\\
 		$C^d$ & set of caregivers available on day $d$\\
 		$U^d$ & set of feasible caregiving units available on day $d$\\
-		$U_p^d \subset U^d$ & set of feasible caregiving units of effective size two available on day $d$\\
 		$U_s^d \subset U^d$ & set of feasible caregiving units of effective size one available on day $d$\\
-		$U_D^d \subset U^d$ & set of feasible caregibing units available on day $d$ containing an equivalent full-time driver\\
+		$U_p^d \subset U^d$ & set of feasible caregiving units of effective size two available on day $d$\\
+		$U_D^d \subset U^d$ & set of feasible caregiving units available on day $d$ containing an equivalent full-time driver\\
 		$L$ & set of localities served
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
+$D$ is found simply by identifying each unique day in the given planning horizon. $C^d$ is taken as the set of unique Caregiver IDs provided in the dataset of caregivers that are marked as available on day $d \in D$. $U^d$ enumerates each feasible caregiving unit of one or two "members" on day $d \in D$, with a unit considered feasible if the shift pattern of one of its members contains the shift pattern of the other. Members of a unit may be either a single, real caregiver regardless of individual shift pattern or a "coupling" of caregivers, where the first caregiver in a coupling works a morning pattern shift, while the second works an afternoon pattern shift. $U_s^d$ is then the subset of $u \in U^d$ where $u$ contains either exactly one real caregiver or exactly one caregiver coupling. Similarly, $U_p^d$ is then the subset of $u \in U^d$ where $u$ contains either exactly two real caregivers or exactly one real caregiver paired with exactly one caregiver coupling. $U_D^d$ is then the subset of $u \in U^d$ where $u$ has at least one "designated driver." In this case, a designated driver can be either one real caregiver who is listed as a driver or a coupling where both caregivers in the coupling are listed as drivers. Finally, the set $L$ is the set of localities considered in the model, and is derived by performing a hierarchical clustering of the provided list of clients using the portion of the provided travel matrix pertaining exclusively to client-client travel. This yields eight groupings of clients or localitied. Eight was chosen as the number of localities to generate given the knowledge of there being three principle municipalities served by the company and a need to avoid both creating too many localities causing infeasibility and too few localities resulting in loss of information with regard to the travel required by certain assignments.
+
+With these sets, it is then possible to derive parameters for the model. The full set of model parameters can be found in Table \ref{tab:paramstab}
 \begin{table}[H]
 	\caption{Model Parameters}
-	\begin{tabular}{ll}
+	\label{tab:paramstab}
+	\begin{tabularx}{\textwidth}{l X}
 		$d_{ij}$ & driving time between caregivers $i \in C^d$ and $j \in C^d$\\
-		$d_u$ & driving time required to create unit $u$\\
+		$l_u$ & binary indicator whether caregiver unit $u$ is located in locality $l$\\
 		$r_{ul}$ & driving time required for unit $u$ to reach locality $l$\\
-		$F_u^d$ & total duration of pair visits on day $d$ where both active caregivers in unit $u \in U_p^d$ are familiar to the client\\
+		$F_u^d$ & total duration of pair visits on day $d$ where both active (i.e. on-shift) caregivers in unit $u \in U_p^d$ are familiar to the client\\
 		$f_u^d$ & total duration of pair visits on day $d$ where either active caregiver in unit $u \in U_p^d$ is familiar to the client\\
 		$s_u^d$ & total duration of solo visits on day $d$ where the active caregiver in unit $u \in U_s^d$ is familiar to the client\\
 		$V^d$ & total duration of all visits on day $d$\\
 		$V_P^d$ & total duration of all visits on day $d$ requiring two caregivers present\\
 		$V_s^d$ & total duration of all visits on day $d$ requiring one caregiver present\\
 		$p^d = \frac{V_P^d}{V^d}$ & share of total visit duration on day $d$ requiring a caregiving pair\\
-		$T^d = \tfrac{p |C_D^d|}{1 + p}$ & target number of caregiving pairs to assign on day $d$\\
 		$V_{Pl}^d$ & total visit duration in locality $l$ on day $d$ requiring a caregiving pair\\
 		$V_{sl}^d$ & total visit duration in locality $l$ on day $d$ requiring a single caregiver\\
-		$l_u$ & binary indicator whether caregiver unit $u$ is located in locality $l$\\
-		$K$ & maximum distance carers will travel for pairing
-	\end{tabular}
+		$K$ & maximum distance caregivers will travel for pairing
+	\end{tabularx}
 \end{table}
+
+Caregiver-caregiver travel times are not available directly from the provided travel matrix, and must therefore be derived. For $d_{ij}$, this is done by identifying the nearest client to caregiver $i$ (defined as $c_i$) and the equivalent client for $j$ (defined as $c_j$), allowing the derivation $d_{ij} = d_{i c_i} + d_{c_i c_j} + d_{j c_j}$, as all client-client and caregiver-client travel times are explicitly given in the travel time matrix. $l_u$ is then defined by the caregiver $i \in u$ where $d_{i c_i}$ is minimized. $r_{ul}$ is then set to zero for the home locality defined by $l_u$, while for all other localities $l$ it is set to the maximum $d_{i c_l} \forall i \in u \, \forall c_l \in l$, i.e. the worst-case travel time for a caregiver in unit $u$ to travel to any given client assigned to locality $l$. $K$ is set to 40 minutes based on discussion with those thus far involved in the routing and scheduling process at the company. Remaining parameters are derived in a relatively straighforward manner directly from the data. It should be noted that $F_u^d \leq f_u^d$ as all visits that meet the "and" requirement for $F_u^d$ necessarily meet the less restrictive "and" requirement for $f_u^d$. This is a deliberate choice intended to incentivize selection for potential pair visits where both caregivers present are known to the client.
+
+The sets defined in Table \ref{tab:settab} are also used to define the decision variables used in the model. Binary variables are used to indicate the two decisions which must be made for each feasible unit for each day being assigned. The first of these decisions is whether to choose to assign the unit $u \in U^d$ on day $d$, and this decision is modelled by the binary decision variable $x_u^d$. The second decision is which locality $l$ an assigned unit $u$ would serve given the assigned units on day $d$, with this decision being modelled as a binary choice across each locality with the decision variable $z_{ul}^d$. Certain constraints in the model would constrain $z_{ul}^d$ strictly in the cases where $x_u^d = 1$, generally requiring the multiplication of these two binary decision variables. As this would make the model nonlinear, the continuous decision variable $w_{ul}^d$ is introduced to linearize this product per a standard Mixed-Integer Linear Programming method. Full details on the decision variables used in the formulation of this Mixed-Integer Linear Program are found in Table \ref{tab:varstab}
 
 \begin{table}[H]
 	\caption{Model Decision Variables}
+	\label{tab:varstab}
 	\begin{tabular}{l}
 		$x_u^d = \begin{cases}
 			1 & \text{if caregiving unit } u \in U^d \text{ is assigned on day } d\\
@@ -234,6 +290,8 @@ There is also the question of considering clients' gender preference. This consi
 	\end{tabular}
 \end{table}
 
+\subsubsection{Mathematical Formulation of the Mixed-Integer Linear Program}
+With all relevant components defined, it is possible to define the Mixed-Integer Linear Program as given in Equations \eqref{obj1} - \eqref{domW}.
 \begin{footnotesize}
 \begin{align}
 \max \quad
@@ -245,20 +303,18 @@ There is also the question of considering clients' gender preference. This consi
 \text{s.t.}\quad
 & \sum\nolimits_{u \in \{u \in U^d \mid i \in u \}} x_u^d = 1
 && \forall i \in C^d,\ d \in D \label{assignOnce} \\
-& \sum\nolimits_{u \in U_p^d} w_{ul}^d \leq \lceil \tfrac{V_{Pl}^d}{V_P^d} T^d \rceil + \epsilon
+& \sum\nolimits_{u \in U_p^d} w_{ul}^d \leq \lceil \tfrac{V_{Pl}^d}{V_P^d} \sum\nolimits_{u \in U_p^d} x_u^d \rceil + \epsilon
 && \forall d \in D,\ l \in L \label{upperPairLocale} \\
-& \sum\nolimits_{u \in U_p^d} w_{ul}^d \geq \lfloor \tfrac{V_{Pl}^d}{V_P^d} T^d \rfloor - \epsilon
+& \sum\nolimits_{u \in U_p^d} w_{ul}^d \geq \lfloor \tfrac{V_{Pl}^d}{V_P^d} \sum\nolimits_{u \in U_p^d} x_u^d \rfloor - \epsilon
 && \forall d \in D,\ l \in L \label{lowerPairLocale} \\
-& \sum\nolimits_{u \in U_s^d} w_{ul}^d \leq \lceil |C^d| - T \epsilon \rceil + 2\epsilon
+& \sum\nolimits_{u \in U_s^d} w_{ul}^d \leq \lceil \tfrac{V_{sl}^d}{V_s^d} \sum\nolimits_{u \in U_s^d} x_u^d \rceil + 2\epsilon
 && \forall d \in D,\ l \in L \label{upperSoloLocale} \\
-& \sum\nolimits_{u \in U_s^d} w_{ul}^d \geq \lfloor |C^d| - T \rfloor - 2 \epsilon
+& \sum\nolimits_{u \in U_s^d} w_{ul}^d \geq \lfloor \tfrac{V_{sl}^d}{V_s^d} \sum\nolimits_{u \in U_s^d} x_u^d \rfloor - 2 \epsilon
 && \forall d \in D,\ l \in L \label{lowerSoloLocale} \\
-& T - \epsilon \leq \sum\nolimits_{u \in U_p^d} x_u^d \leq T + \epsilon
+& p \sum\nolimits_{u \in U^d} x_u^d - \epsilon \leq \sum\nolimits_{u \in U_p^d} x_u^d \leq p \sum\nolimits_{u \in U^d} x_u^d + \epsilon
 && \forall d \in D \label{pairTolerance}\\
-& |C^d| - T - 2 \epsilon \leq \sum\nolimits_{u \in U_s^d} x_u^d \leq |C^d| - T + 2 \epsilon
-&& \forall d \in D \label{soloTolerance}\\
 & x_u^d = 0 \label{pairDistLimit}\\
-&& \forall u \in \{\, u \in U^d \mid \exists \(i,j\) \in u \mid d_{ij} \ge K\,\} \notag\\
+&& \forall u \in \{\, u \in U^d \mid \exists (i,j) \in u \mid d_{ij} \ge K\,\} \notag\\
 %% --- example of the "still too long" fallback pattern ---
 & 0 \leq w_{ul}^d \leq x_u^d 
 && \forall u \in U_D^d,\ l \in L,\ d \in D \label{wLin1} \\
@@ -272,23 +328,55 @@ There is also the question of considering clients' gender preference. This consi
 && \forall u \in U^d,\ d \in D \label{domX} \\
 & z_{ul}^d \in \{0,1\}
 && \forall u \in U^d,\ l \in L,\ d \in D \label{domZ} \\
-& w_{ul}^d \in \mathbb{R}
+& w_{ul}^d \in \mathbb{R} \label{domW}
 \end{align}
 \end{footnotesize}
 
+\eqref{obj1} serves as the first objective of the model and represents the maximization of daily visit minutes which could potentially be served by units either entirely or partially familiar to the client. Meanwhile, \eqref{obj2} serves as the second model objective, and represents an estimate of the total, one-way caregiver travel time which will be observed under the given unit assignment. 
+
+The model is constrained by Equations \eqref{assignOnce} - \eqref{wLin4}. \eqref{assignOnce} ensures that each caregiver present on a given day is given exactly one caregiver unit assignment on that given day. \eqref{upperPairLocale} and \eqref{lowerPairLocale} constrains the location assignment of pair units to fall within a range proportional to the share of pair visit minutes located in each locality, while \eqref{upperSoloLocale} and \eqref{lowerSoloLocale} do the equivalent for solo caregiving units. A similar range is defined to constrain the overall number of pair units assigned by \eqref{pairTolerance}, namely the number of pair units assigned on a day should represent a share of all units assigned that day in proportion to the share of that day's total visit minutes that require a pair unit present. This constraint implicitly constrains the overall number of solo units assigned, as by ensuring that the number of daily assigned pair units as a share of total unit assignments is proportional to the corresponding share of that day's total visit minutes that require a pair unit present, it is ensured that the remaining unit assignments will be proportional to the remaining share of daily visit minutes, both of which solely represent solo units and solo visits respectively. As caregivers will refuse pairings that require excessive travel, \eqref{pairDistLimit} ensures that any pair unit that would require a link with associated travel greater than $K$ is not chosen, recalling $K = 40$ minutes per discussion with those familiar with the company's existing routing and scheduling. Finally, the model is constrained by \eqref{wLin1}, \eqref{wLin2}, and \eqref{wLin4}, which, in conjunction, force $w_{ul}^d = x_u^d \times z_{ul}^d$. This is a standard linearization of such a product of binary decision variables, and it can be expicitly understood through the truth table in Table \ref{tab:lintruth}.
+
+\begin{table}[H]
+	\setlength{\tabcolsep}{3pt}
+	\begin{center}
+		\caption{Truth Table of Constraints Linearizing the Product of Binary Decision Variables}
+		\label{tab:lintruth}
+		\begin{tabular}{ccccccc}
+			Value of $x_u^d$ & Value of $z_{ul}^d$ & \eqref{wLin1} & \eqref{wLin2} & \eqref{wLin4} & Value of $x_u^d \times z_{ul}^d$ & Binding Constraint(s)\\
+			\toprule
+			0 & 0 & $0 \leq w_{ul}^d \leq 0$ & $w_{ul}^d \leq 0$ & $w_{ul}^d \geq -1$ & 0 & \eqref{wLin1}, \eqref{wLin2} \\
+			0 & 1 & $0 \leq w_{ul}^d \leq 0$ & $w_{ul}^d \leq 1$ & $w_{ul}^d \geq 0$ & 0 & \eqref{wLin1}, \eqref{wLin4}\\
+			1 & 0 & $0 \leq w_{ul}^d \leq 1$ & $w_{ul}^d \leq 0$ & $w_{ul}^d \geq 0$ & 0 & \eqref{wLin2}, \eqref{wLin4}\\
+			1 & 1 & $0 \leq w_{ul}^d \leq 1$ & $w_{ul}^d \leq 1$ & $w_{ul}^d \geq 1$ & 0 & \eqref{wLin2}, \eqref{wLin4}\\
+		\end{tabular}
+	\end{center}
+\end{table}
+
+Finally, the domains of each decision variable as given in Table \ref{tab:varstab} are defined explicitly in the formualtion by \eqref{domX}, \eqref{domZ}, and \eqref{domW} respectively.
+
+With regard to the approach of the multiobjective nature of this formulation, the following approach is taken. A partial Pareto-optimal frontier is generated by solving the model for \eqref{obj1} and noting the observed value of \eqref{obj2} $t_{max}$ under that solution, optimizing for \eqref{obj2} to find its minimum value $t_{min}$ subject to meeting all requirements of a feasible assignment, and then introducing the following constraint and optimizing for \eqref{obj1} subject to that additional constraint for $\lambda \in [\tfrac{1}{4}, \tfrac{1}{2}, \tfrac{3}{4}]$. 
+\[
+\text{\eqref{obj2}} \leq \lambda t_{max} + (1 - \lambda) t_{min}
+\]
 
 \clearpage
 
 \section{Results}
 \label{sec:res}
-The model was implemented with Gurobi's optimization solver using its Python library. 
+The company provided data for two weeks of visits to be routed and scheduled, available caregivers and their relevant traits, anonymized client information, and a travel matrix containing travel times for client-client and caregiver-client travel. A preprocessing script written in Python is used to derive all relevant model parameters and write them to a pickle file; this script runs in approximately five seconds. The model is then implemented in a separate script written in Python and using Gurobi Optimizer using its Python API. The model is optimized according to the multiobjective framework described in \ref{sec:meth}. The script then checks each of the five generated solutions to ensure that no duplicate solutions were returned; in the test case, four unique solutions were generated. Unique solutions are then written to separate csv files in a standard format. This model script runs in approximately 12 seconds.
 \subsection{Effect on Downstream Routing and Scheduling Process}
 
 \clearpage
 
 \section{Conclusion}
 \label{sec:conc}
-lol we've got a long way to go before i start doing this
+\textbf{To-Do:}
+\begin{itemize}
+	\item Review context
+	\item Review accomplishments of work
+	\item Consider Limitations
+	\item Suggestion(s) of Future Work
+\end{itemize}
 \clearpage
 
 %the entries have to be in the file literature.bib
@@ -299,7 +387,9 @@ lol we've got a long way to go before i start doing this
 \section*{Appendices}
 \addcontentsline{toc}{section}{Appendices}
 
-\section{Appendix A}
+\section{Appendix A: Additional Materials}
 \label{app:one}
+
+The scripts discussed in this report are available at \href{https://github.com/mpannenkoeken/msc-hhrsp}{https://github.com/mpannenkoeken/msc-hhrsp}
 
 \end{document}

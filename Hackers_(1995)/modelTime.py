@@ -33,12 +33,9 @@ def normalize(df):
 # pull out a plain, human-readable dataframe of "who got assigned where" for
 # the CURRENT solved state of the model. gets called once per objective/
 # lambda-weight solve below, so we get one dataframe snapshot per solution.
-def get_sol(D, units_d, L, xud, zuld, lu, allCouples_d):
+def get_sol(D, units_d, L, xud, zuld, lu):
     rows = []
     for d in D:
-        
-        # today's couples as a set of sorted tuples, same trick as split_unit above
-        todaysCouples = {tuple(sorted(c)) for c in allCouples_d[d]}
         
         # paired caregivers
         # generator expression: "for u in (... if ...)" filters units_d[d] down
@@ -75,31 +72,24 @@ def get_sol(D, units_d, L, xud, zuld, lu, allCouples_d):
                 # pair with a couple somewhere: figure out which two of the
                 # three members are the actual glued-together couple
                 if u["couples"]:
-                    for a, b in combinations(u["members"], 2):
-                        if tuple(sorted((a,b))) in todaysCouples:
-                            remaining = [x for x in u["members"] if x not in (a,b)]
-                            parts = u["id"].split("_")
-                            # if the full-timer was put first, then they are
-                            # designated-driver
-                            if int(parts[0]) == remaining[0]:
-                                rows.append({
-                                    "Day": d,
-                                    "Unit Type": u["type"],
-                                    "(eq.) Caregiver ID 1": remaining,
-                                    "(eq.) Caregiver ID 2": (a, b),
-                                    "Locality Assignment": lAssignment
-                                    })
-                            # otherwise the couple is the designated driver
-                            else:
-                                rows.append({
-                                    "Day": d,
-                                    "Unit Type": u["type"],
-                                    "(eq.) Caregiver ID 1": (a, b),
-                                    "(eq.) Caregiver ID 2": remaining,
-                                    "Locality Assignment": lAssignment
-                                    })
-                            
-                                    
+                    a, b = u["couple"]
+                    remaining = [x for x in u["members"] if x not in (a,b)]
+                    if u["dc"]:
+                        rows.append({
+                            "Day": d,
+                            "Unit Type": u["type"],
+                            "(eq.) Caregiver ID 1": (a, b),
+                            "(eq.) Caregiver ID 2": remaining[0],
+                            "Locality Assignment": lAssignment
+                            })
+                    else:
+                        rows.append({
+                            "Day": d,
+                            "Unit Type": u["type"],
+                            "(eq.) Caregiver ID 1": remaining[0],
+                            "(eq.) Caregiver ID 2": (a, b),
+                            "Locality Assignment": lAssignment
+                            })
                     
         # solo caregivers
         for u in (u for u in units_d[d] if u["type"] == "solo"):
@@ -115,25 +105,43 @@ def get_sol(D, units_d, L, xud, zuld, lu, allCouples_d):
                     if lAssignment == None:
                         lAssignment = next(l for l in L if lu[(u["id"],l)] == 1)
                     
-                    rows.append({
-                        "Day": d,
-                        "Unit Type": u["type"],
-                        "(eq.) Caregiver ID 1": u["members"],
-                        "(eq.) Caregiver ID 2": None,
-                        "Locale Assignment": lAssignment
-                        })
+                    if u["couples"]:
+                        rows.append({
+                            "Day": d,
+                            "Unit Type": u["type"],
+                            "(eq.) Caregiver ID 1": u["members"],
+                            "(eq.) Caregiver ID 2": None,
+                            "Locality Assignment": lAssignment
+                            })
+                    else:
+                        rows.append({
+                            "Day": d,
+                            "Unit Type": u["type"][0],
+                            "(eq.) Caregiver ID 1": u["members"],
+                            "(eq.) Caregiver ID 2": None,
+                            "Locality Assignment": lAssignment
+                            })
                 # non-driving solo units never get a zuld/wuld entry at all
                 # (see the decision variable declarations: those are only built
                 # over driveUnits_d), so just read their fixed home locality
                 else:
                     lAssignment = next(l for l in L if lu[(u["id"],l)] == 1)
-                    rows.append({
-                        "Day": d,
-                        "Unit Type": u["type"],
-                        "(eq.) Caregiver ID 1": u["members"],
-                        "(eq.) Caregiver ID 2": None,
-                        "Locale Assignment": lAssignment
-                        })
+                    if u["couples"]:
+                        rows.append({
+                            "Day": d,
+                            "Unit Type": u["type"],
+                            "(eq.) Caregiver ID 1": u["members"],
+                            "(eq.) Caregiver ID 2": None,
+                            "Locality Assignment": lAssignment
+                            })
+                    else:
+                        rows.append({
+                            "Day": d,
+                            "Unit Type": u["type"][0],
+                            "(eq.) Caregiver ID 1": u["members"],
+                            "(eq.) Caregiver ID 2": None,
+                            "Locality Assignment": lAssignment
+                            })
     # save results
     # pd.DataFrame(rows) turns our list of dicts straight into a table --
     # each dict becomes one row, dict keys become column names automatically
@@ -165,7 +173,6 @@ D = data["D"]
 Cd = data["Cd"]
 units_d = data["units_d"]
 driveUnits_d = data["drive_d"]
-allCouples_d = data["allCouples"]
 L = data["L"]
 du = data["du"]
 dij = data["dij"]
@@ -366,7 +373,7 @@ maxTravel = carerTravelCeiling.getValue()
 
 allResults = []
 # store objective 1 results
-maxTravelSol = get_sol(D, units_d, L, xud, zuld, lu, allCouples_d)
+maxTravelSol = get_sol(D, units_d, L, xud, zuld, lu)
 allResults.append(maxTravelSol)
 
 print(f"Maximum Observed Travel Ceiling: {maxTravel}")
@@ -389,7 +396,7 @@ m.optimize()
 minTravel = m.ObjVal
 
 # store objective 2 results
-minTravelSol = get_sol(D, units_d, L, xud, zuld, lu, allCouples_d)
+minTravelSol = get_sol(D, units_d, L, xud, zuld, lu)
 allResults.append(minTravelSol)
 
 print(f"Minimum Observed Travel Ceiling: {minTravel}")
@@ -413,7 +420,7 @@ for lamb in [0.25, 0.5, 0.75]:
     print(f"Observed Travel: {carerTravelCeiling.getValue()}")
     
     # save results
-    currSol = get_sol(D, units_d, L, xud, zuld, lu, allCouples_d)
+    currSol = get_sol(D, units_d, L, xud, zuld, lu)
     allResults.append(currSol)
     
 """
